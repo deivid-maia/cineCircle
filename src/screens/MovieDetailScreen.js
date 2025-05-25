@@ -11,6 +11,8 @@ import {
   SafeAreaView,
   Dimensions
 } from 'react-native';
+
+import { useMovies } from '../contexts/useMovies';
 import { Feather } from '@expo/vector-icons';
 import { getMovieDetails } from '../services/api';
 
@@ -20,6 +22,76 @@ const MovieDetailScreen = ({ route, navigation }) => {
   const { movieId } = route.params;
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Adicionar estas funções dentro do componente:
+  const handleWatchlist = async () => {
+    try {
+      if (movieStatus.watchlist) {
+        const result = await removeMovieFromList(movie.id, 'watchlist');
+        if (result.success) {
+          setMovieStatus(prev => ({ ...prev, watchlist: false }));
+        }
+      } else {
+        const result = await addMovieToList(movie, 'watchlist');
+        if (result.success) {
+          setMovieStatus(prev => ({ ...prev, watchlist: true }));
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar watchlist:', error);
+    }
+  };
+
+  const handleFavorites = async () => {
+    try {
+      if (movieStatus.favorites) {
+        const result = await removeMovieFromList(movie.id, 'favorites');
+        if (result.success) {
+          setMovieStatus(prev => ({ ...prev, favorites: false }));
+        }
+      } else {
+        const result = await addMovieToList(movie, 'favorites');
+        if (result.success) {
+          setMovieStatus(prev => ({ ...prev, favorites: true }));
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar favoritos:', error);
+    }
+  };
+
+  const handleWatched = async () => {
+    // Para assistidos, podemos abrir um modal simples ou usar rating padrão
+    try {
+      if (movieStatus.watched) {
+        const result = await removeMovieFromList(movie.id, 'watched');
+        if (result.success) {
+          setMovieStatus(prev => ({ ...prev, watched: false }));
+        }
+      } else {
+        // Adicionar com rating padrão de 3 estrelas (pode melhorar depois)
+        const result = await addMovieToList(movie, 'watched', 3, null);
+        if (result.success) {
+          setMovieStatus(prev => ({ ...prev, watched: true }));
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar assistidos:', error);
+    }
+  };
+
+  const {
+    addMovieToList,
+    removeMovieFromList,
+    isMovieInList,
+    loading: moviesLoading
+  } = useMovies();
+
+  const [movieStatus, setMovieStatus] = useState({
+    watched: false,
+    favorites: false,
+    watchlist: false
+  });
 
   useEffect(() => {
     const fetchMovieDetails = async () => {
@@ -35,6 +107,32 @@ const MovieDetailScreen = ({ route, navigation }) => {
 
     fetchMovieDetails();
   }, [movieId]);
+
+  useEffect(() => {
+    const checkMovieStatus = async () => {
+      if (!movie?.id) return;
+
+      try {
+        const [watchedResult, favoritesResult, watchlistResult] = await Promise.all([
+          isMovieInList(movie.id, 'watched'),
+          isMovieInList(movie.id, 'favorites'),
+          isMovieInList(movie.id, 'watchlist')
+        ]);
+
+        setMovieStatus({
+          watched: watchedResult.success && watchedResult.exists,
+          favorites: favoritesResult.success && favoritesResult.exists,
+          watchlist: watchlistResult.success && watchlistResult.exists
+        });
+      } catch (error) {
+        console.error('Erro ao verificar status do filme:', error);
+      }
+    };
+
+    if (movie) {
+      checkMovieStatus();
+    }
+  }, [movie, isMovieInList]);
 
   if (loading) {
     return (
@@ -64,7 +162,7 @@ const MovieDetailScreen = ({ route, navigation }) => {
     const stars = [];
     const fullStars = Math.floor(rating / 2);
     const halfStar = rating % 2 >= 1;
-    
+
     for (let i = 0; i < 5; i++) {
       if (i < fullStars) {
         stars.push(<Feather key={i} name="star" size={16} color="#FFD700" style={styles.starIcon} />);
@@ -74,14 +172,14 @@ const MovieDetailScreen = ({ route, navigation }) => {
         stars.push(<Feather key={i} name="star" size={16} color="#FFD700" style={[styles.starIcon, { opacity: 0.2 }]} />);
       }
     }
-    
+
     return stars;
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+
       {/* Botão Voltar */}
       {/* <TouchableOpacity 
         style={styles.backButton}
@@ -89,7 +187,7 @@ const MovieDetailScreen = ({ route, navigation }) => {
       >
         <Feather name="arrow-left" size={24} color="white" />
       </TouchableOpacity> */}
-      
+
       <ScrollView>
         {/* Imagem de Fundo do Filme */}
         <View style={styles.backdropContainer}>
@@ -104,7 +202,7 @@ const MovieDetailScreen = ({ route, navigation }) => {
           />
           <View style={styles.backdropGradient} />
         </View>
-        
+
         {/* Informações do Filme */}
         <View style={styles.movieInfoContainer}>
           <View style={styles.posterAndInfo}>
@@ -117,10 +215,10 @@ const MovieDetailScreen = ({ route, navigation }) => {
               style={styles.posterImage}
               resizeMode="cover"
             />
-            
+
             <View style={styles.infoContainer}>
               <Text style={styles.title}>{movie.title}</Text>
-              
+
               <View style={styles.detailsRow}>
                 <Text style={styles.year}>
                   {movie.release_date ? movie.release_date.substring(0, 4) : 'N/A'}
@@ -129,14 +227,14 @@ const MovieDetailScreen = ({ route, navigation }) => {
                   {movie.runtime ? `${movie.runtime} min` : 'N/A'}
                 </Text>
               </View>
-              
+
               <View style={styles.ratingContainer}>
                 {renderStars(movie.vote_average)}
                 <Text style={styles.ratingText}>
                   {movie.vote_average ? `${movie.vote_average.toFixed(1)}/10` : 'N/A'}
                 </Text>
               </View>
-              
+
               <View style={styles.genresContainer}>
                 {movie.genres && movie.genres.map(genre => (
                   <View key={genre.id} style={styles.genreTag}>
@@ -146,7 +244,7 @@ const MovieDetailScreen = ({ route, navigation }) => {
               </View>
             </View>
           </View>
-          
+
           {/* Sinopse */}
           <View style={styles.overviewContainer}>
             <Text style={styles.overviewTitle}>Sinopse</Text>
@@ -154,7 +252,7 @@ const MovieDetailScreen = ({ route, navigation }) => {
               {movie.overview || 'Sinopse não disponível para este filme.'}
             </Text>
           </View>
-          
+
           {/* Produção */}
           {movie.production_companies && movie.production_companies.length > 0 && (
             <View style={styles.productionContainer}>
@@ -168,22 +266,71 @@ const MovieDetailScreen = ({ route, navigation }) => {
               </View>
             </View>
           )}
-          
+
           {/* Botões de Ação */}
           <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity style={styles.actionButton}>
-              <Feather name="bookmark" size={20} color="white" />
-              <Text style={styles.actionButtonText}>Quero ver</Text>
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                movieStatus.watchlist && styles.activeActionButton
+              ]}
+              onPress={handleWatchlist}
+              disabled={moviesLoading}
+            >
+              <Feather
+                name="bookmark"
+                size={20}
+                color={movieStatus.watchlist ? "#BD0DC0" : "white"}
+              />
+              <Text style={[
+                styles.actionButtonText,
+                movieStatus.watchlist && styles.activeActionButtonText
+              ]}>
+                {movieStatus.watchlist ? "Na Lista" : "Quero ver"}
+              </Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.actionButton}>
-              <Feather name="check-circle" size={20} color="white" />
-              <Text style={styles.actionButtonText}>Já vi</Text>
+
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                movieStatus.watched && styles.activeActionButton
+              ]}
+              onPress={handleWatched}
+              disabled={moviesLoading}
+            >
+              <Feather
+                name="check-circle"
+                size={20}
+                color={movieStatus.watched ? "#BD0DC0" : "white"}
+              />
+              <Text style={[
+                styles.actionButtonText,
+                movieStatus.watched && styles.activeActionButtonText
+              ]}>
+                {movieStatus.watched ? "Assistido" : "Já vi"}
+              </Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity style={[styles.actionButton, styles.recommendButton]}>
-              <Feather name="share-2" size={20} color="white" />
-              <Text style={styles.actionButtonText}>Recomendar</Text>
+
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                styles.recommendButton,
+                movieStatus.favorites && styles.activeActionButton
+              ]}
+              onPress={handleFavorites}
+              disabled={moviesLoading}
+            >
+              <Feather
+                name="heart"
+                size={20}
+                color={movieStatus.favorites ? "#BD0DC0" : "white"}
+              />
+              <Text style={[
+                styles.actionButtonText,
+                movieStatus.favorites && styles.activeActionButtonText
+              ]}>
+                {movieStatus.favorites ? "Favorito" : "Favoritar"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -379,6 +526,14 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     marginLeft: 6,
+  },
+  
+  activeActionButton: {
+    backgroundColor: 'rgba(189, 13, 192, 0.15)',
+    borderColor: '#BD0DC0',
+  },
+  activeActionButtonText: {
+    color: '#BD0DC0',
   },
 });
 
