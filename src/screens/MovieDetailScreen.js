@@ -24,11 +24,12 @@ const MovieDetailScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Hook do contexto
+  // 🔥 HOOK DO CONTEXTO COM FUNÇÕES CORRIGIDAS
   const { 
     addMovieToList, 
     toggleFavorite, 
     removeMovie,
+    removeMovieStatus, // 🔥 NOVA FUNÇÃO IMPORTADA
     isMovieInList, 
     isFavorite, 
     getUserMovie 
@@ -49,7 +50,7 @@ const MovieDetailScreen = ({ route, navigation }) => {
     fetchMovieDetails();
   }, [movieId]);
 
-  // 🔥 NOVA FUNÇÃO - Toggle Watchlist (adiciona/remove)
+  // 🔥 FUNÇÃO CORRIGIDA - Toggle Watchlist (usar remoção inteligente)
   const handleWatchlistToggle = async () => {
     if (!movie || actionLoading) return;
     
@@ -59,13 +60,23 @@ const MovieDetailScreen = ({ route, navigation }) => {
       const isCurrentlyInWatchlist = isMovieInList(movie.id, 'watchlist');
       
       if (isCurrentlyInWatchlist) {
-        // Se já está na watchlist, remover
-        await removeMovie(movie.id);
-        // Alert.alert('Removido', 'Filme removido da sua lista "Quero Ver"!');
+        // 🔥 USAR REMOÇÃO INTELIGENTE - remove apenas status 'watchlist'
+        const result = await removeMovieStatus(movie.id, 'watchlist');
+        if (result.success) {
+          console.log('✅ Watchlist toggle:', result.action);
+          // Opcional: mostrar feedback baseado na ação
+          if (result.action === 'status_removed_favorite_kept') {
+            console.log('ℹ️ Removido da lista, mas mantido nos favoritos');
+          } else if (result.action === 'movie_removed_completely') {
+            console.log('ℹ️ Filme removido completamente');
+          }
+        } else {
+          Alert.alert('Erro', result.error || 'Não foi possível remover da lista.');
+        }
       } else {
         // Se não está, adicionar
         await addMovieToList(movie, 'watchlist');
-        // Alert.alert('Adicionado', 'Filme adicionado à sua lista "Quero Ver"!');
+        console.log('✅ Adicionado à watchlist');
       }
       
     } catch (error) {
@@ -76,7 +87,7 @@ const MovieDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  // 🔥 NOVA FUNÇÃO - Toggle Watched (adiciona/remove)
+  // 🔥 FUNÇÃO CORRIGIDA - Toggle Watched (usar remoção inteligente)
   const handleWatchedToggle = async () => {
     if (!movie || actionLoading) return;
     
@@ -86,13 +97,23 @@ const MovieDetailScreen = ({ route, navigation }) => {
       const isCurrentlyWatched = isMovieInList(movie.id, 'watched');
       
       if (isCurrentlyWatched) {
-        // Se já está como assistido, remover
-        await removeMovie(movie.id);
-        // Alert.alert('Removido', 'Filme removido da lista de assistidos!');
+        // 🔥 USAR REMOÇÃO INTELIGENTE - remove apenas status 'watched'
+        const result = await removeMovieStatus(movie.id, 'watched');
+        if (result.success) {
+          console.log('✅ Watched toggle:', result.action);
+          // Opcional: mostrar feedback baseado na ação
+          if (result.action === 'status_removed_favorite_kept') {
+            console.log('ℹ️ Removido dos assistidos, mas mantido nos favoritos');
+          } else if (result.action === 'movie_removed_completely') {
+            console.log('ℹ️ Filme removido completamente');
+          }
+        } else {
+          Alert.alert('Erro', result.error || 'Não foi possível remover da lista.');
+        }
       } else {
         // Se não está, marcar como assistido
         await addMovieToList(movie, 'watched');
-        // Alert.alert('Marcado', 'Filme marcado como assistido!');
+        console.log('✅ Marcado como assistido');
       }
       
     } catch (error) {
@@ -103,25 +124,34 @@ const MovieDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  // 🔥 FUNÇÃO FAVORITO - Já faz toggle automaticamente
+  // 🔥 FUNÇÃO FAVORITO - MANTÉM COMO ESTÁ (já usa toggleFavorite que é inteligente)
   const handleFavoriteToggle = async () => {
     if (!movie || actionLoading) return;
     
     try {
       setActionLoading(true);
-      await toggleFavorite(movie);
-      
-      // const isCurrentlyFavorite = isFavorite(movie.id);
-      // Alert.alert(
-      //   'Sucesso', 
-      //   isCurrentlyFavorite ? 'Adicionado aos favoritos!' : 'Removido dos favoritos!'
-      // );
+      await toggleFavorite(movie); // Esta função já é inteligente
+      console.log('✅ Favorito alternado');
     } catch (error) {
       console.error('Erro ao alterar favorito:', error);
       Alert.alert('Erro', 'Não foi possível alterar favorito. Tente novamente.');
     } finally {
       setActionLoading(false);
     }
+  };
+
+  // 🔥 FUNÇÃO PARA ABRIR MODAL DE AVALIAÇÃO (se implementar no futuro)
+  const handleRateMovie = () => {
+    // Implementar modal de avaliação
+    console.log('📝 Abrir modal de avaliação para:', movie.title);
+    // navigation.navigate('RateMovie', { movie });
+  };
+
+  // 🔥 FUNÇÃO PARA RECOMENDAR FILME
+  const handleRecommendMovie = () => {
+    // Implementar funcionalidade de recomendação
+    console.log('📢 Recomendar filme:', movie.title);
+    // navigation.navigate('RecommendMovie', { movie });
   };
 
   if (loading) {
@@ -166,10 +196,11 @@ const MovieDetailScreen = ({ route, navigation }) => {
     return stars;
   };
 
-  // Verificar status atual
+  // 🔥 VERIFICAR STATUS ATUAL DO FILME
   const isInWatchlist = isMovieInList(movie.id, 'watchlist');
   const isWatched = isMovieInList(movie.id, 'watched');
   const movieIsFavorite = isFavorite(movie.id);
+  const userMovie = getUserMovie(movie.id);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -240,6 +271,41 @@ const MovieDetailScreen = ({ route, navigation }) => {
             </View>
           </View>
           
+          {/* 🔥 SEÇÃO DE STATUS DO USUÁRIO */}
+          {userMovie && (
+            <View style={styles.userStatusContainer}>
+              <Text style={styles.userStatusTitle}>Seu Status</Text>
+              <View style={styles.userStatusContent}>
+                {isWatched && (
+                  <View style={styles.statusBadge}>
+                    <Feather name="check-circle" size={16} color="#10B981" />
+                    <Text style={[styles.statusText, { color: '#10B981' }]}>Assistido</Text>
+                  </View>
+                )}
+                {isInWatchlist && (
+                  <View style={styles.statusBadge}>
+                    <Feather name="bookmark" size={16} color="#3B82F6" />
+                    <Text style={[styles.statusText, { color: '#3B82F6' }]}>Quero Ver</Text>
+                  </View>
+                )}
+                {movieIsFavorite && (
+                  <View style={styles.statusBadge}>
+                    <Feather name="heart" size={16} color="#EF4444" />
+                    <Text style={[styles.statusText, { color: '#EF4444' }]}>Favorito</Text>
+                  </View>
+                )}
+                {userMovie.userRating && (
+                  <View style={styles.statusBadge}>
+                    <Feather name="star" size={16} color="#FFD700" />
+                    <Text style={[styles.statusText, { color: '#FFD700' }]}>
+                      {userMovie.userRating}/5
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+          
           {/* Sinopse */}
           <View style={styles.overviewContainer}>
             <Text style={styles.overviewTitle}>Sinopse</Text>
@@ -262,8 +328,9 @@ const MovieDetailScreen = ({ route, navigation }) => {
             </View>
           )}
           
-          {/* 🔥 BOTÕES ATUALIZADOS COM TOGGLE */}
+          {/* 🔥 BOTÕES DE AÇÃO CORRIGIDOS */}
           <View style={styles.actionButtonsContainer}>
+            {/* Botão Quero Ver */}
             <TouchableOpacity 
               style={[
                 styles.actionButton,
@@ -273,19 +340,26 @@ const MovieDetailScreen = ({ route, navigation }) => {
               onPress={handleWatchlistToggle}
               disabled={actionLoading}
             >
-              <Feather 
-                name={isInWatchlist ? "bookmark" : "bookmark"} 
-                size={20} 
-                color={isInWatchlist ? "#BD0DC0" : "white"} 
-              />
-              <Text style={[
-                styles.actionButtonText,
-                isInWatchlist && styles.actionButtonTextActive
-              ]}>
-                Quero ver
-              </Text>
+              {actionLoading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <Feather 
+                    name={isInWatchlist ? "bookmark" : "bookmark"} 
+                    size={20} 
+                    color={isInWatchlist ? "#BD0DC0" : "white"} 
+                  />
+                  <Text style={[
+                    styles.actionButtonText,
+                    isInWatchlist && styles.actionButtonTextActive
+                  ]}>
+                    {isInWatchlist ? 'Na Lista' : 'Quero ver'}
+                  </Text>
+                </>
+              )}
             </TouchableOpacity>
             
+            {/* Botão Já Vi */}
             <TouchableOpacity 
               style={[
                 styles.actionButton,
@@ -304,10 +378,11 @@ const MovieDetailScreen = ({ route, navigation }) => {
                 styles.actionButtonText,
                 isWatched && styles.actionButtonTextActive
               ]}>
-                Já vi
+                {isWatched ? 'Assistido' : 'Já vi'}
               </Text>
             </TouchableOpacity>
             
+            {/* Botão Favoritar */}
             <TouchableOpacity 
               style={[
                 styles.actionButton, 
@@ -327,26 +402,72 @@ const MovieDetailScreen = ({ route, navigation }) => {
                 styles.actionButtonText,
                 movieIsFavorite && styles.favoriteButtonTextActive
               ]}>
-                Favoritar
+                {movieIsFavorite ? 'Favorito' : 'Favoritar'}
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* 🔥 DEBUG INFO - Remove depois de testar */}
-          <View style={styles.debugContainer}>
-            <Text style={styles.debugText}>
-              🎬 Debug: {movie.title} (ID: {movie.id})
-            </Text>
-            <Text style={styles.debugText}>
-              📋 Watchlist: {isInWatchlist ? 'SIM' : 'NÃO'}
-            </Text>
-            <Text style={styles.debugText}>
-              ✅ Assistido: {isWatched ? 'SIM' : 'NÃO'}
-            </Text>
-            <Text style={styles.debugText}>
-              ❤️ Favorito: {movieIsFavorite ? 'SIM' : 'NÃO'}
-            </Text>
+          {/* 🔥 BOTÕES SECUNDÁRIOS */}
+          <View style={styles.secondaryActionsContainer}>
+            {/* Botão Avaliar */}
+            <TouchableOpacity 
+              style={styles.secondaryButton}
+              onPress={handleRateMovie}
+            >
+              <Feather name="star" size={18} color="#9CA3AF" />
+              <Text style={styles.secondaryButtonText}>
+                {userMovie?.userRating ? 'Editar Avaliação' : 'Avaliar'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Botão Recomendar */}
+            <TouchableOpacity 
+              style={styles.secondaryButton}
+              onPress={handleRecommendMovie}
+            >
+              <Feather name="share-2" size={18} color="#9CA3AF" />
+              <Text style={styles.secondaryButtonText}>Recomendar</Text>
+            </TouchableOpacity>
           </View>
+
+          {/* 🔥 REVIEW DO USUÁRIO (se existir) */}
+          {userMovie?.userReview && (
+            <View style={styles.userReviewContainer}>
+              <Text style={styles.userReviewTitle}>Sua Opinião</Text>
+              <Text style={styles.userReviewText}>{userMovie.userReview}</Text>
+              <TouchableOpacity 
+                style={styles.editReviewButton}
+                onPress={handleRateMovie}
+              >
+                <Feather name="edit-2" size={14} color="#BD0DC0" />
+                <Text style={styles.editReviewText}>Editar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* 🔥 DEBUG INFO - Remover em produção */}
+          {__DEV__ && (
+            <View style={styles.debugContainer}>
+              <Text style={styles.debugTitle}>🔍 Debug Info</Text>
+              <Text style={styles.debugText}>
+                🎬 Filme: {movie.title} (ID: {movie.id})
+              </Text>
+              <Text style={styles.debugText}>
+                📋 Watchlist: {isInWatchlist ? 'SIM' : 'NÃO'}
+              </Text>
+              <Text style={styles.debugText}>
+                ✅ Assistido: {isWatched ? 'SIM' : 'NÃO'}
+              </Text>
+              <Text style={styles.debugText}>
+                ❤️ Favorito: {movieIsFavorite ? 'SIM' : 'NÃO'}
+              </Text>
+              {userMovie && (
+                <Text style={styles.debugText}>
+                  📊 Rating: {userMovie.userRating || 'N/A'} | Review: {userMovie.userReview ? 'SIM' : 'NÃO'}
+                </Text>
+              )}
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -487,6 +608,37 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
   },
+  userStatusContainer: {
+    backgroundColor: '#27272A',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  userStatusTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  userStatusContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#18181B',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 6,
+  },
   overviewContainer: {
     marginBottom: 24,
   },
@@ -541,7 +693,7 @@ const styles = StyleSheet.create({
   actionButtonActive: {
     backgroundColor: 'rgba(189, 13, 192, 0.15)',
     borderColor: '#BD0DC0',
-    transform: [{ scale: 1.02 }], // Leve aumento no tamanho
+    transform: [{ scale: 1.02 }],
   },
   actionButtonDisabled: {
     opacity: 0.6,
@@ -561,18 +713,73 @@ const styles = StyleSheet.create({
   favoriteButtonActive: {
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderColor: '#EF4444',
-    transform: [{ scale: 1.02 }], // Leve aumento no tamanho
+    transform: [{ scale: 1.02 }],
   },
   favoriteButtonTextActive: {
     color: '#EF4444',
     fontWeight: '600',
   },
-  // 🔥 DEBUG STYLES - Remover depois
+  secondaryActionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 24,
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#3F3F46',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: width * 0.4,
+  },
+  secondaryButtonText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  userReviewContainer: {
+    backgroundColor: '#27272A',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  userReviewTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  userReviewText: {
+    color: '#D1D5DB',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  editReviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+  },
+  editReviewText: {
+    color: '#BD0DC0',
+    fontSize: 14,
+    marginLeft: 4,
+  },
   debugContainer: {
     backgroundColor: '#27272A',
     padding: 12,
     borderRadius: 8,
     marginTop: 16,
+  },
+  debugTitle: {
+    color: '#FFD700',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
   debugText: {
     color: '#9CA3AF',
@@ -581,4 +788,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MovieDetailScreen
+export default MovieDetailScreen;

@@ -42,7 +42,7 @@ export const MoviesProvider = ({ children }) => {
     setLoading(true);
     try {
       console.log('📋 Carregando filmes do usuário:', currentUser.uid);
-
+      
       const snapshot = await db.collection('userMovies')
         .where('userId', '==', currentUser.uid)
         .get();
@@ -86,11 +86,13 @@ export const MoviesProvider = ({ children }) => {
       if (!existingQuery.empty) {
         // Atualizar filme existente
         const docRef = existingQuery.docs[0].ref;
+        const currentData = existingQuery.docs[0].data();
+        
         await docRef.update({
           status,
-          isFavorite: options.isFavorite !== undefined ? options.isFavorite : existingQuery.docs[0].data().isFavorite,
-          userRating: options.rating || existingQuery.docs[0].data().userRating,
-          userReview: options.review || existingQuery.docs[0].data().userReview,
+          isFavorite: options.isFavorite !== undefined ? options.isFavorite : currentData.isFavorite,
+          userRating: options.rating || currentData.userRating,
+          userReview: options.review || currentData.userReview,
           updatedAt: new Date()
         });
         console.log('✅ Filme atualizado');
@@ -126,7 +128,7 @@ export const MoviesProvider = ({ children }) => {
     }
   };
 
-  // Alternar favorito
+  // 🔥 FUNÇÃO CORRIGIDA - Alternar favorito
   const toggleFavorite = async (movieData) => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
@@ -135,7 +137,7 @@ export const MoviesProvider = ({ children }) => {
 
     try {
       console.log('⭐ Alternando favorito:', movieData.title);
-
+      
       const existingQuery = await db.collection('userMovies')
         .where('userId', '==', currentUser.uid)
         .where('movieId', '==', movieData.id)
@@ -145,17 +147,17 @@ export const MoviesProvider = ({ children }) => {
         const doc = existingQuery.docs[0];
         const currentData = doc.data();
         const newFavoriteStatus = !currentData.isFavorite;
-
+        
         // 🔥 LÓGICA CORRIGIDA: verificar se deve manter ou remover o filme
         if (newFavoriteStatus === false && (!currentData.status || currentData.status === null)) {
           // 🔥 Se não é mais favorito E não tem status, REMOVER COMPLETAMENTE
           await doc.ref.delete();
-
+          
           // Remover do estado local
-          setUserMovies(prevMovies =>
+          setUserMovies(prevMovies => 
             prevMovies.filter(movie => movie.movieId !== movieData.id)
           );
-
+          
           console.log('✅ Filme removido completamente (não favorito + sem status)');
         } else {
           // 🔥 Se ainda tem status OU vai ser favorito, apenas atualizar favorito
@@ -163,16 +165,16 @@ export const MoviesProvider = ({ children }) => {
             isFavorite: newFavoriteStatus,
             updatedAt: new Date()
           });
-
+          
           // Atualizar estado local
-          setUserMovies(prevMovies =>
-            prevMovies.map(movie =>
-              movie.movieId === movieData.id
+          setUserMovies(prevMovies => 
+            prevMovies.map(movie => 
+              movie.movieId === movieData.id 
                 ? { ...movie, isFavorite: newFavoriteStatus }
                 : movie
             )
           );
-
+          
           console.log('✅ Favorito alternado para:', newFavoriteStatus);
         }
       } else {
@@ -194,14 +196,14 @@ export const MoviesProvider = ({ children }) => {
         };
 
         await db.collection('userMovies').add(newMovie);
-
+        
         // Atualizar estado local
         setUserMovies(prevMovies => [...prevMovies, {
           id: 'temp-' + Date.now(),
           ...newMovie,
           addedAt: new Date()
         }]);
-
+        
         console.log('✅ Filme adicionado apenas como favorito');
       }
 
@@ -213,91 +215,16 @@ export const MoviesProvider = ({ children }) => {
     }
   };
 
-
-  // const toggleFavorite = async (movieData) => {
-  //   const currentUser = auth.currentUser;
-  //   if (!currentUser) {
-  //     throw new Error('Usuário não autenticado');
-  //   }
-
-  //   try {
-  //     console.log('⭐ Alternando favorito:', movieData.title);
-
-  //     const existingQuery = await db.collection('userMovies')
-  //       .where('userId', '==', currentUser.uid)
-  //       .where('movieId', '==', movieData.id)
-  //       .get();
-
-  //     // Atualizar estado local para melhor UX
-  //     if (!existingQuery.empty) {
-  //       const doc = existingQuery.docs[0];
-  //       const currentData = doc.data();
-  //       const newFavoriteStatus = !currentData.isFavorite;
-
-  //       // 🔥 APENAS ATUALIZAR O FAVORITO, SEM MEXER NO STATUS
-  //       await doc.ref.update({
-  //         isFavorite: newFavoriteStatus,
-  //         updatedAt: new Date()
-  //       });
-
-  //       // Atualizar estado local imediatamente
-  //       setUserMovies(prevMovies =>
-  //         prevMovies.map(movie =>
-  //           movie.movieId === movieData.id
-  //             ? { ...movie, isFavorite: newFavoriteStatus }
-  //             : movie
-  //         )
-  //       );
-
-  //       console.log('✅ Favorito alternado para:', newFavoriteStatus);
-  //     } else {
-  //       // 🔥 FILME NÃO EXISTE - CRIAR SEM STATUS, APENAS COMO FAVORITO
-  //       const newMovie = {
-  //         userId: currentUser.uid,
-  //         movieId: movieData.id,
-  //         title: movieData.title,
-  //         posterPath: movieData.poster_path,
-  //         releaseDate: movieData.release_date,
-  //         overview: movieData.overview,
-  //         voteAverage: movieData.vote_average,
-  //         status: null, // 🔥 SEM STATUS INICIAL
-  //         isFavorite: true, // 🔥 APENAS FAVORITO
-  //         userRating: null,
-  //         userReview: '',
-  //         addedAt: new Date(),
-  //         updatedAt: new Date()
-  //       };
-
-  //       await db.collection('userMovies').add(newMovie);
-
-  //       // Atualizar estado local
-  //       setUserMovies(prevMovies => [...prevMovies, {
-  //         id: 'temp-' + Date.now(),
-  //         ...newMovie,
-  //         addedAt: new Date()
-  //       }]);
-
-  //       console.log('✅ Filme adicionado apenas como favorito');
-  //     }
-
-  //     return { success: true };
-
-  //   } catch (error) {
-  //     console.error('❌ Erro ao alterar favorito:', error);
-  //     throw error;
-  //   }
-  // };
-
-  // 🔥 NOVA FUNÇÃO - Remover apenas status (mantém favorito se existir)
-  const removeMovieStatus = async (movieId, status) => {
+  // 🔥 NOVA FUNÇÃO - Remover apenas status específico (mantém favorito se existir)
+  const removeMovieStatus = async (movieId, statusToRemove) => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
       throw new Error('Usuário não autenticado');
     }
 
     try {
-      console.log('🔄 Removendo status:', status, 'do filme ID:', movieId);
-
+      console.log('🔄 Removendo status:', statusToRemove, 'do filme ID:', movieId);
+      
       const snapshot = await db.collection('userMovies')
         .where('userId', '==', currentUser.uid)
         .where('movieId', '==', movieId)
@@ -306,37 +233,54 @@ export const MoviesProvider = ({ children }) => {
       if (!snapshot.empty) {
         const doc = snapshot.docs[0];
         const currentData = doc.data();
-
-        // 🔥 SE É FAVORITO, MANTER O FILME MAS REMOVER STATUS
-        if (currentData.isFavorite) {
+        
+        console.log('📋 Dados atuais do filme:', {
+          status: currentData.status,
+          isFavorite: currentData.isFavorite
+        });
+        
+        // 🔥 LÓGICA INTELIGENTE: verificar o que manter
+        const willRemoveStatus = currentData.status === statusToRemove;
+        const isFavorite = currentData.isFavorite === true || currentData.isFavorite === 'true';
+        
+        if (willRemoveStatus && isFavorite) {
+          // 🔥 REMOVER APENAS O STATUS, MANTER COMO FAVORITO
           await doc.ref.update({
-            status: null, // 🔥 REMOVER STATUS MAS MANTER FAVORITO
+            status: null, // Remove o status
+            // Mantém isFavorite, userRating, userReview se existirem
             updatedAt: new Date()
           });
-
+          
           // Atualizar estado local
-          setUserMovies(prevMovies =>
-            prevMovies.map(movie =>
-              movie.movieId === movieId
+          setUserMovies(prevMovies => 
+            prevMovies.map(movie => 
+              movie.movieId === movieId 
                 ? { ...movie, status: null }
                 : movie
             )
           );
-
+          
           console.log('✅ Status removido, favorito mantido');
-        } else {
+          return { success: true, action: 'status_removed_favorite_kept' };
+          
+        } else if (willRemoveStatus && !isFavorite) {
           // 🔥 NÃO É FAVORITO, REMOVER FILME COMPLETAMENTE
           await doc.ref.delete();
-
+          
           // Atualizar estado local
-          setUserMovies(prevMovies =>
+          setUserMovies(prevMovies => 
             prevMovies.filter(movie => movie.movieId !== movieId)
           );
-
-          console.log('✅ Filme removido completamente');
+          
+          console.log('✅ Filme removido completamente (não é favorito)');
+          return { success: true, action: 'movie_removed_completely' };
+          
+        } else {
+          // 🔥 STATUS NÃO CORRESPONDE, NÃO FAZER NADA
+          console.log('⚠️ Status não corresponde ao solicitado para remoção');
+          return { success: false, error: 'Status não corresponde' };
         }
-
-        return { success: true };
+        
       } else {
         console.log('⚠️ Filme não encontrado');
         return { success: false, error: 'Filme não encontrado' };
@@ -347,7 +291,7 @@ export const MoviesProvider = ({ children }) => {
     }
   };
 
-  // 🔥 MANTER FUNÇÃO removeMovie PARA COMPATIBILIDADE (remove filme completamente)
+  // 🔥 MANTER FUNÇÃO removeMovie PARA REMOÇÃO COMPLETA (quando necessário)
   const removeMovie = async (movieId) => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
@@ -356,7 +300,7 @@ export const MoviesProvider = ({ children }) => {
 
     try {
       console.log('🗑️ Removendo filme completamente ID:', movieId);
-
+      
       const snapshot = await db.collection('userMovies')
         .where('userId', '==', currentUser.uid)
         .where('movieId', '==', movieId)
@@ -367,14 +311,14 @@ export const MoviesProvider = ({ children }) => {
         snapshot.docs.forEach(doc => {
           batch.delete(doc.ref);
         });
-
+        
         await batch.commit();
-
+        
         // Atualizar estado local
-        setUserMovies(prevMovies =>
+        setUserMovies(prevMovies => 
           prevMovies.filter(movie => movie.movieId !== movieId)
         );
-
+        
         console.log('✅ Filme removido completamente');
         return { success: true };
       } else {
@@ -412,20 +356,20 @@ export const MoviesProvider = ({ children }) => {
     return userMovies.filter(movie => movie.isFavorite === true);
   };
 
-  // Estatísticas do usuário
+  // 🔥 ESTATÍSTICAS CORRIGIDAS
   const getStats = () => {
     const watched = userMovies.filter(m => m.status === 'watched').length;
     const watchlist = userMovies.filter(m => m.status === 'watchlist').length;
     const recommendations = userMovies.filter(m => m.status === 'recommendation').length;
     const reviews = userMovies.filter(m => m.userReview && m.userReview.trim()).length;
     const ratings = userMovies.filter(m => m.userRating && m.userRating > 0).length;
-
+    
     // 🔥 CORRIGIR CONTAGEM DE FAVORITOS
     const favorites = userMovies.filter(m => {
       const isFav = m.isFavorite === true || m.isFavorite === 'true';
       return isFav;
     }).length;
-
+    
     // 🔥 CORRIGIR TOTAL - apenas filmes com status válido OU favoritos
     const total = userMovies.filter(m => {
       const hasValidStatus = m.status && m.status !== null && m.status !== '';
@@ -444,36 +388,64 @@ export const MoviesProvider = ({ children }) => {
       totalUserMovies: userMovies.length
     });
 
-    return {
-      watched,
-      favorites,
-      watchlist,
+    return { 
+      watched, 
+      favorites, 
+      watchlist, 
       recommendations,
-      reviews,
-      ratings,
-      total
+      reviews, 
+      ratings, 
+      total 
     };
   };
 
+  // 🧹 FUNÇÃO OPCIONAL - Limpar filmes órfãos
+  const cleanupOrphanMovies = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('Usuário não autenticado');
+    }
 
-  // const getStats = () => {
-  //   const watched = userMovies.filter(m => m.status === 'watched').length;
-  //   const favorites = userMovies.filter(m => m.isFavorite).length;
-  //   const watchlist = userMovies.filter(m => m.status === 'watchlist').length;
-  //   const recommendations = userMovies.filter(m => m.status === 'recommendation').length;
-  //   const reviews = userMovies.filter(m => m.userReview && m.userReview.trim()).length;
-  //   const ratings = userMovies.filter(m => m.userRating && m.userRating > 0).length;
+    try {
+      console.log('🧹 Iniciando limpeza de filmes órfãos...');
+      
+      const snapshot = await db.collection('userMovies')
+        .where('userId', '==', currentUser.uid)
+        .get();
 
-  //   return { 
-  //     watched, 
-  //     favorites, 
-  //     watchlist, 
-  //     recommendations,
-  //     reviews, 
-  //     ratings, 
-  //     total: userMovies.length 
-  //   };
-  // };
+      const batch = db.batch();
+      let orphanCount = 0;
+
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        
+        // Identificar filmes órfãos
+        const hasValidStatus = data.status && data.status !== null && data.status !== '';
+        const isFavorite = data.isFavorite === true || data.isFavorite === 'true';
+        
+        if (!hasValidStatus && !isFavorite) {
+          console.log(`🗑️ Removendo filme órfão: ${data.title}`);
+          batch.delete(doc.ref);
+          orphanCount++;
+        }
+      });
+
+      if (orphanCount > 0) {
+        await batch.commit();
+        console.log(`✅ ${orphanCount} filmes órfãos removidos`);
+        
+        // Recarregar lista
+        await refreshUserMovies();
+      } else {
+        console.log('✨ Nenhum filme órfão encontrado');
+      }
+
+      return { success: true, removedCount: orphanCount };
+    } catch (error) {
+      console.error('❌ Erro na limpeza:', error);
+      throw error;
+    }
+  };
 
   // Testar conexão Firebase
   const testFirebaseConnection = async () => {
@@ -488,18 +460,19 @@ export const MoviesProvider = ({ children }) => {
     }
   };
 
+  // 🔥 VALOR DO CONTEXTO COM TODAS AS FUNÇÕES
   const value = {
     // Estado
     userMovies,
     loading,
-
+    
     // Funções principais
     refreshUserMovies,
     addMovieToList,
     toggleFavorite,
-    removeMovie, // 🔥 FUNÇÃO COMPLETA (remove tudo)
-    removeMovieStatus, // 🔥 FUNÇÃO INTELIGENTE (remove só status)
-
+    removeMovie, // 🔥 REMOÇÃO COMPLETA
+    removeMovieStatus, // 🔥 REMOÇÃO INTELIGENTE DE STATUS
+    
     // Funções de consulta
     isMovieInList,
     isFavorite,
@@ -507,10 +480,13 @@ export const MoviesProvider = ({ children }) => {
     getMoviesByStatus,
     getFavorites,
     getStats,
-
+    
+    // Função de limpeza
+    cleanupOrphanMovies,
+    
     // Função de teste
     testFirebaseConnection,
-
+    
     // Estados computados
     stats: getStats(),
   };

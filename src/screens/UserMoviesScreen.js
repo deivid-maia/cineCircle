@@ -101,49 +101,6 @@ const UserMoviesScreen = ({ route, navigation }) => {
         }
     };
 
-
-    //   const getFilteredMovies = () => {
-    //     console.log('🔍 Filtrando filmes com filtro:', activeFilter);
-    //     console.log('📋 Total de filmes:', userMovies.length);
-
-    //     // 🔥 LOG DETALHADO DOS FILMES PARA DEBUG
-    //     userMovies.forEach(movie => {
-    //       console.log(`📽️ ${movie.title}:`, {
-    //         status: movie.status,
-    //         isFavorite: movie.isFavorite,
-    //         movieId: movie.movieId
-    //       });
-    //     });
-
-    //     switch (activeFilter) {
-    //       case 'watched':
-    //         const watchedMovies = userMovies.filter(movie => movie.status === 'watched');
-    //         console.log('👁️ Filmes assistidos encontrados:', watchedMovies.length);
-    //         return watchedMovies;
-    //       case 'watchlist':
-    //         const watchlistMovies = userMovies.filter(movie => movie.status === 'watchlist');
-    //         console.log('📋 Filmes da watchlist encontrados:', watchlistMovies.length);
-    //         return watchlistMovies;
-    //       case 'favorites':
-    //         // 🔥 CORRIGIR FILTRO DE FAVORITOS
-    //         const favoriteMovies = userMovies.filter(movie => {
-    //           const isFav = movie.isFavorite === true || movie.isFavorite === 'true';
-    //           console.log(`❤️ Verificando ${movie.title}: isFavorite =`, movie.isFavorite, 'resultado:', isFav);
-    //           return isFav;
-    //         });
-    //         console.log('❤️ Filmes favoritos encontrados:', favoriteMovies.length);
-    //         console.log('❤️ Favoritos:', favoriteMovies.map(m => m.title));
-    //         return favoriteMovies;
-    //       case 'recommendations':
-    //         const recommendationMovies = userMovies.filter(movie => movie.status === 'recommendation');
-    //         console.log('💡 Recomendações encontradas:', recommendationMovies.length);
-    //         return recommendationMovies;
-    //       default:
-    //         console.log('📚 Todos os filmes:', userMovies.length);
-    //         return userMovies;
-    //     }
-    //   };
-
     const filteredMovies = getFilteredMovies();
 
     // Função para obter contagem de cada filtro
