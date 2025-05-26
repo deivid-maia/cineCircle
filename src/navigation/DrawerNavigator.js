@@ -2,6 +2,7 @@ import React from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { Platform } from 'react-native';
 import CustomDrawerContent from '../components/CustomDrawerContent';
+import UserMoviesScreen from '../screens/UserMoviesScreen';
 
 // Ele é nosso contêiner principal, ele esta fazendo a ponte entre o auth e o app principal HomeTab
 import TabNavigator from './TabNavigator';
@@ -35,6 +36,7 @@ const DrawerNavigator = () => {
       <Drawer.Screen name="Notifications" component={NotificationsScreen} />
       <Drawer.Screen name="Help" component={HelpScreen} />
       <Drawer.Screen name="EditProfile" component={EditProfileScreen} />
+      <Drawer.Screen name="UserMovies" component={UserMoviesScreen} />
     </Drawer.Navigator>
   );
 };

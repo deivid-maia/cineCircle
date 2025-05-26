@@ -10,6 +10,8 @@ import * as NavigationBar from 'expo-navigation-bar';
 // Contexto de autenticação
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 
+import { MoviesProvider } from './src/contexts/useMovies';
+
 // Telas de autenticação
 import InitialScreen from './src/screens/InitialScreen';
 import LoginScreen from './src/screens/LoginScreen';
@@ -66,15 +68,15 @@ const AppNavigator = () => {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: '#18181B' },
-          animation: 'slide_from_right', 
+          animation: 'slide_from_right',
         }}
       >
         {user ? (
           // Usuário autenticado - mostrar telas principais
           <>
-            <Stack.Screen 
-              name="MainApp" 
-              component={DrawerNavigator} 
+            <Stack.Screen
+              name="MainApp"
+              component={DrawerNavigator}
               options={{ gestureEnabled: false }}
             />
             <Stack.Screen name="Detalhes" component={MovieDetailScreen} />
@@ -82,8 +84,8 @@ const AppNavigator = () => {
         ) : (
           // Usuário não autenticado - mostrar telas de auth
           <>
-            <Stack.Screen 
-              name="Inicial" 
+            <Stack.Screen
+              name="Inicial"
               component={InitialScreen}
               options={{ gestureEnabled: false }}
             />
@@ -111,18 +113,20 @@ export default function App() {
         }
       }
     };
-    
+
     setupNavigationBar();
   }, []);
 
   return (
     <AuthProvider>
-      <SafeAreaProvider>
-        <View style={styles.container}>
-          <StatusBar style="light" backgroundColor="#18181B" />
-          <AppNavigator />
-        </View>
-      </SafeAreaProvider>
+      <MoviesProvider>
+        <SafeAreaProvider>
+          <View style={styles.container}>
+            <StatusBar style="light" backgroundColor="#18181B" />
+            <AppNavigator />
+          </View>
+        </SafeAreaProvider>
+      </MoviesProvider>
     </AuthProvider>
   );
 }
