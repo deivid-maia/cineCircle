@@ -42,7 +42,7 @@ export const MoviesProvider = ({ children }) => {
     setLoading(true);
     try {
       console.log('📋 Carregando filmes do usuário:', currentUser.uid);
-      
+
       const snapshot = await db.collection('userMovies')
         .where('userId', '==', currentUser.uid)
         .get();
@@ -135,36 +135,48 @@ export const MoviesProvider = ({ children }) => {
 
     try {
       console.log('⭐ Alternando favorito:', movieData.title);
-      
+
       const existingQuery = await db.collection('userMovies')
         .where('userId', '==', currentUser.uid)
         .where('movieId', '==', movieData.id)
         .get();
 
-      // Atualizar estado local para melhor UX
       if (!existingQuery.empty) {
         const doc = existingQuery.docs[0];
         const currentData = doc.data();
         const newFavoriteStatus = !currentData.isFavorite;
-        
-        // 🔥 APENAS ATUALIZAR O FAVORITO, SEM MEXER NO STATUS
-        await doc.ref.update({
-          isFavorite: newFavoriteStatus,
-          updatedAt: new Date()
-        });
-        
-        // Atualizar estado local imediatamente
-        setUserMovies(prevMovies => 
-          prevMovies.map(movie => 
-            movie.movieId === movieData.id 
-              ? { ...movie, isFavorite: newFavoriteStatus }
-              : movie
-          )
-        );
-        
-        console.log('✅ Favorito alternado para:', newFavoriteStatus);
+
+        // 🔥 LÓGICA CORRIGIDA: verificar se deve manter ou remover o filme
+        if (newFavoriteStatus === false && (!currentData.status || currentData.status === null)) {
+          // 🔥 Se não é mais favorito E não tem status, REMOVER COMPLETAMENTE
+          await doc.ref.delete();
+
+          // Remover do estado local
+          setUserMovies(prevMovies =>
+            prevMovies.filter(movie => movie.movieId !== movieData.id)
+          );
+
+          console.log('✅ Filme removido completamente (não favorito + sem status)');
+        } else {
+          // 🔥 Se ainda tem status OU vai ser favorito, apenas atualizar favorito
+          await doc.ref.update({
+            isFavorite: newFavoriteStatus,
+            updatedAt: new Date()
+          });
+
+          // Atualizar estado local
+          setUserMovies(prevMovies =>
+            prevMovies.map(movie =>
+              movie.movieId === movieData.id
+                ? { ...movie, isFavorite: newFavoriteStatus }
+                : movie
+            )
+          );
+
+          console.log('✅ Favorito alternado para:', newFavoriteStatus);
+        }
       } else {
-        // 🔥 FILME NÃO EXISTE - CRIAR SEM STATUS, APENAS COMO FAVORITO
+        // 🔥 FILME NÃO EXISTE - CRIAR APENAS COMO FAVORITO (sem status)
         const newMovie = {
           userId: currentUser.uid,
           movieId: movieData.id,
@@ -182,14 +194,14 @@ export const MoviesProvider = ({ children }) => {
         };
 
         await db.collection('userMovies').add(newMovie);
-        
+
         // Atualizar estado local
         setUserMovies(prevMovies => [...prevMovies, {
           id: 'temp-' + Date.now(),
           ...newMovie,
           addedAt: new Date()
         }]);
-        
+
         console.log('✅ Filme adicionado apenas como favorito');
       }
 
@@ -201,6 +213,81 @@ export const MoviesProvider = ({ children }) => {
     }
   };
 
+
+  // const toggleFavorite = async (movieData) => {
+  //   const currentUser = auth.currentUser;
+  //   if (!currentUser) {
+  //     throw new Error('Usuário não autenticado');
+  //   }
+
+  //   try {
+  //     console.log('⭐ Alternando favorito:', movieData.title);
+
+  //     const existingQuery = await db.collection('userMovies')
+  //       .where('userId', '==', currentUser.uid)
+  //       .where('movieId', '==', movieData.id)
+  //       .get();
+
+  //     // Atualizar estado local para melhor UX
+  //     if (!existingQuery.empty) {
+  //       const doc = existingQuery.docs[0];
+  //       const currentData = doc.data();
+  //       const newFavoriteStatus = !currentData.isFavorite;
+
+  //       // 🔥 APENAS ATUALIZAR O FAVORITO, SEM MEXER NO STATUS
+  //       await doc.ref.update({
+  //         isFavorite: newFavoriteStatus,
+  //         updatedAt: new Date()
+  //       });
+
+  //       // Atualizar estado local imediatamente
+  //       setUserMovies(prevMovies =>
+  //         prevMovies.map(movie =>
+  //           movie.movieId === movieData.id
+  //             ? { ...movie, isFavorite: newFavoriteStatus }
+  //             : movie
+  //         )
+  //       );
+
+  //       console.log('✅ Favorito alternado para:', newFavoriteStatus);
+  //     } else {
+  //       // 🔥 FILME NÃO EXISTE - CRIAR SEM STATUS, APENAS COMO FAVORITO
+  //       const newMovie = {
+  //         userId: currentUser.uid,
+  //         movieId: movieData.id,
+  //         title: movieData.title,
+  //         posterPath: movieData.poster_path,
+  //         releaseDate: movieData.release_date,
+  //         overview: movieData.overview,
+  //         voteAverage: movieData.vote_average,
+  //         status: null, // 🔥 SEM STATUS INICIAL
+  //         isFavorite: true, // 🔥 APENAS FAVORITO
+  //         userRating: null,
+  //         userReview: '',
+  //         addedAt: new Date(),
+  //         updatedAt: new Date()
+  //       };
+
+  //       await db.collection('userMovies').add(newMovie);
+
+  //       // Atualizar estado local
+  //       setUserMovies(prevMovies => [...prevMovies, {
+  //         id: 'temp-' + Date.now(),
+  //         ...newMovie,
+  //         addedAt: new Date()
+  //       }]);
+
+  //       console.log('✅ Filme adicionado apenas como favorito');
+  //     }
+
+  //     return { success: true };
+
+  //   } catch (error) {
+  //     console.error('❌ Erro ao alterar favorito:', error);
+  //     throw error;
+  //   }
+  // };
+
   // 🔥 NOVA FUNÇÃO - Remover apenas status (mantém favorito se existir)
   const removeMovieStatus = async (movieId, status) => {
     const currentUser = auth.currentUser;
@@ -210,7 +297,7 @@ export const MoviesProvider = ({ children }) => {
 
     try {
       console.log('🔄 Removendo status:', status, 'do filme ID:', movieId);
-      
+
       const snapshot = await db.collection('userMovies')
         .where('userId', '==', currentUser.uid)
         .where('movieId', '==', movieId)
@@ -219,36 +306,36 @@ export const MoviesProvider = ({ children }) => {
       if (!snapshot.empty) {
         const doc = snapshot.docs[0];
         const currentData = doc.data();
-        
+
         // 🔥 SE É FAVORITO, MANTER O FILME MAS REMOVER STATUS
         if (currentData.isFavorite) {
           await doc.ref.update({
             status: null, // 🔥 REMOVER STATUS MAS MANTER FAVORITO
             updatedAt: new Date()
           });
-          
+
           // Atualizar estado local
-          setUserMovies(prevMovies => 
-            prevMovies.map(movie => 
-              movie.movieId === movieId 
+          setUserMovies(prevMovies =>
+            prevMovies.map(movie =>
+              movie.movieId === movieId
                 ? { ...movie, status: null }
                 : movie
             )
           );
-          
+
           console.log('✅ Status removido, favorito mantido');
         } else {
           // 🔥 NÃO É FAVORITO, REMOVER FILME COMPLETAMENTE
           await doc.ref.delete();
-          
+
           // Atualizar estado local
-          setUserMovies(prevMovies => 
+          setUserMovies(prevMovies =>
             prevMovies.filter(movie => movie.movieId !== movieId)
           );
-          
+
           console.log('✅ Filme removido completamente');
         }
-        
+
         return { success: true };
       } else {
         console.log('⚠️ Filme não encontrado');
@@ -269,7 +356,7 @@ export const MoviesProvider = ({ children }) => {
 
     try {
       console.log('🗑️ Removendo filme completamente ID:', movieId);
-      
+
       const snapshot = await db.collection('userMovies')
         .where('userId', '==', currentUser.uid)
         .where('movieId', '==', movieId)
@@ -280,14 +367,14 @@ export const MoviesProvider = ({ children }) => {
         snapshot.docs.forEach(doc => {
           batch.delete(doc.ref);
         });
-        
+
         await batch.commit();
-        
+
         // Atualizar estado local
-        setUserMovies(prevMovies => 
+        setUserMovies(prevMovies =>
           prevMovies.filter(movie => movie.movieId !== movieId)
         );
-        
+
         console.log('✅ Filme removido completamente');
         return { success: true };
       } else {
@@ -328,22 +415,65 @@ export const MoviesProvider = ({ children }) => {
   // Estatísticas do usuário
   const getStats = () => {
     const watched = userMovies.filter(m => m.status === 'watched').length;
-    const favorites = userMovies.filter(m => m.isFavorite).length;
     const watchlist = userMovies.filter(m => m.status === 'watchlist').length;
     const recommendations = userMovies.filter(m => m.status === 'recommendation').length;
     const reviews = userMovies.filter(m => m.userReview && m.userReview.trim()).length;
     const ratings = userMovies.filter(m => m.userRating && m.userRating > 0).length;
 
-    return { 
-      watched, 
-      favorites, 
-      watchlist, 
+    // 🔥 CORRIGIR CONTAGEM DE FAVORITOS
+    const favorites = userMovies.filter(m => {
+      const isFav = m.isFavorite === true || m.isFavorite === 'true';
+      return isFav;
+    }).length;
+
+    // 🔥 CORRIGIR TOTAL - apenas filmes com status válido OU favoritos
+    const total = userMovies.filter(m => {
+      const hasValidStatus = m.status && m.status !== null && m.status !== '';
+      const isFavorite = m.isFavorite === true || m.isFavorite === 'true';
+      return hasValidStatus || isFavorite;
+    }).length;
+
+    console.log('📊 Estatísticas calculadas:', {
+      watched,
+      favorites,
+      watchlist,
       recommendations,
-      reviews, 
-      ratings, 
-      total: userMovies.length 
+      reviews,
+      ratings,
+      total,
+      totalUserMovies: userMovies.length
+    });
+
+    return {
+      watched,
+      favorites,
+      watchlist,
+      recommendations,
+      reviews,
+      ratings,
+      total
     };
   };
+
+
+  // const getStats = () => {
+  //   const watched = userMovies.filter(m => m.status === 'watched').length;
+  //   const favorites = userMovies.filter(m => m.isFavorite).length;
+  //   const watchlist = userMovies.filter(m => m.status === 'watchlist').length;
+  //   const recommendations = userMovies.filter(m => m.status === 'recommendation').length;
+  //   const reviews = userMovies.filter(m => m.userReview && m.userReview.trim()).length;
+  //   const ratings = userMovies.filter(m => m.userRating && m.userRating > 0).length;
+
+  //   return { 
+  //     watched, 
+  //     favorites, 
+  //     watchlist, 
+  //     recommendations,
+  //     reviews, 
+  //     ratings, 
+  //     total: userMovies.length 
+  //   };
+  // };
 
   // Testar conexão Firebase
   const testFirebaseConnection = async () => {
@@ -362,14 +492,14 @@ export const MoviesProvider = ({ children }) => {
     // Estado
     userMovies,
     loading,
-    
+
     // Funções principais
     refreshUserMovies,
     addMovieToList,
     toggleFavorite,
     removeMovie, // 🔥 FUNÇÃO COMPLETA (remove tudo)
     removeMovieStatus, // 🔥 FUNÇÃO INTELIGENTE (remove só status)
-    
+
     // Funções de consulta
     isMovieInList,
     isFavorite,
@@ -377,10 +507,10 @@ export const MoviesProvider = ({ children }) => {
     getMoviesByStatus,
     getFavorites,
     getStats,
-    
+
     // Função de teste
     testFirebaseConnection,
-    
+
     // Estados computados
     stats: getStats(),
   };
