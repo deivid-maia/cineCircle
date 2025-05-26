@@ -8,7 +8,8 @@ import {
     FlatList,
     TouchableOpacity,
     Image,
-    ActivityIndicator
+    ActivityIndicator,
+    ScrollView
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useMovies } from '../contexts/useMovies';
@@ -235,10 +236,16 @@ const UserMoviesScreen = ({ route, navigation }) => {
 
             {/* Filtros */}
             <View style={styles.filtersContainer}>
-                <FilterButton filter="all" title="Todas" count={stats.total} />
-                <FilterButton filter="watched" title="Assistidos" count={stats.watched} />
-                <FilterButton filter="watchlist" title="Quero ver" count={stats.watchlist} />
-                <FilterButton filter="favorites" title="Favoritos" count={stats.favorites} />
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.filtersScrollContainer}
+                >
+                    <FilterButton filter="all" title="Todas" count={stats.total} />
+                    <FilterButton filter="watched" title="Assistidos" count={stats.watched} />
+                    <FilterButton filter="watchlist" title="Quero ver" count={stats.watchlist} />
+                    <FilterButton filter="favorites" title="Favoritos" count={stats.favorites} />
+                </ScrollView>
             </View>
 
             {/* Lista de filmes */}
@@ -320,55 +327,124 @@ const styles = StyleSheet.create({
         width: 32,
     },
     filtersContainer: {
-        flexDirection: 'row',
+        // 🔥 LAYOUT CORRIGIDO PARA 4 BOTÕES
         paddingHorizontal: 16,
         paddingVertical: 16,
         borderBottomWidth: 1,
         borderBottomColor: '#27272A',
+        // 🔥 OPÇÃO 1: Scroll horizontal (recomendado)
+        overflow: 'hidden',
     },
+
+    // 🔥 WRAPPER PARA SCROLL HORIZONTAL (adicionar ao JSX)
+    filtersScrollContainer: {
+        flexDirection: 'row',
+    },
+
     filterButton: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#27272A',
-        paddingHorizontal: 12,
+        paddingHorizontal: 10,
         paddingVertical: 8,
         borderRadius: 20,
-        marginRight: 12,
+        marginRight: 8,
         borderWidth: 1,
         borderColor: 'transparent',
+        minWidth: 85,
     },
+
     filterButtonActive: {
         backgroundColor: 'rgba(189, 13, 192, 0.15)',
         borderColor: '#BD0DC0',
     },
+
     filterText: {
         color: '#9CA3AF',
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '500',
         marginRight: 6,
+        flexShrink: 1,
     },
+
     filterTextActive: {
         color: '#BD0DC0',
     },
+
     filterCount: {
         backgroundColor: '#18181B',
-        paddingHorizontal: 6,
+        paddingHorizontal: 5,
         paddingVertical: 2,
         borderRadius: 10,
-        minWidth: 20,
+        minWidth: 18,
     },
+
     filterCountActive: {
         backgroundColor: '#BD0DC0',
     },
+
     filterCountText: {
         color: '#9CA3AF',
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: 'bold',
         textAlign: 'center',
     },
+
     filterCountTextActive: {
         color: '#FFFFFF',
     },
+
+    // filtersContainer: {
+    //     flexDirection: 'row',
+    //     paddingHorizontal: 16,
+    //     paddingVertical: 16,
+    //     borderBottomWidth: 1,
+    //     borderBottomColor: '#27272A',
+    //     justifyContent: 'space-between'
+    // },
+    // filterButton: {
+    //     flexDirection: 'row',
+    //     alignItems: 'center',
+    //     backgroundColor: '#27272A',
+    //     paddingHorizontal: 12,
+    //     paddingVertical: 8,
+    //     borderRadius: 20,
+    //     marginRight: 12,
+    //     borderWidth: 1,
+    //     borderColor: 'transparent',
+    // },
+    // filterButtonActive: {
+    //     backgroundColor: 'rgba(189, 13, 192, 0.15)',
+    //     borderColor: '#BD0DC0',
+    // },
+    // filterText: {
+    //     color: '#9CA3AF',
+    //     fontSize: 14,
+    //     fontWeight: '500',
+    //     marginRight: 6,
+    // },
+    // filterTextActive: {
+    //     color: '#BD0DC0',
+    // },
+    // filterCount: {
+    //     backgroundColor: '#18181B',
+    //     paddingHorizontal: 6,
+    //     paddingVertical: 2,
+    //     borderRadius: 10,
+    //     minWidth: 20,
+    // },
+    // filterCountActive: {
+    //     backgroundColor: '#BD0DC0',
+    // },
+    // filterCountText: {
+    //     color: '#9CA3AF',
+    //     fontSize: 12,
+    //     fontWeight: 'bold',
+    //     textAlign: 'center',
+    // },
+    // filterCountTextActive: {
+    //     color: '#FFFFFF',
+    // },
     listContent: {
         paddingBottom: 20,
     },
