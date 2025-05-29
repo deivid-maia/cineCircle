@@ -27,8 +27,7 @@ const EditProfileScreen = ({ navigation }) => {
         updateEmail,
         updatePassword,
         updateBio,
-        getBio,
-        refreshUser    
+        getBio
     } = useAuth();
     
     const [loading, setLoading] = useState(false);
@@ -58,13 +57,16 @@ const EditProfileScreen = ({ navigation }) => {
         loadBio();
     }, []);
 
-    // Monitorar mudanças no user.photoURL
+    // Verificação do estado do avatar
     useEffect(() => {
-        // Se photoURL foi removido e não há imagem local, garantir estados limpos
-        if (!user?.photoURL && !imageUri) {
-            setImageUri(null);
-        }
-    }, [user?.photoURL]);
+        const currentHasAvatar = getAvatarUrl() !== null;
+        console.log('🔄 Avatar state check:', {
+            hasAvatar,
+            currentHasAvatar,
+            imageUri,
+            userPhotoURL: user?.photoURL
+        });
+    }, [imageUri, user?.photoURL]);
 
     const loadBio = async () => {
         try {
@@ -77,15 +79,14 @@ const EditProfileScreen = ({ navigation }) => {
         }
     };
 
-    // Função corrigida para obter avatar
+    // Avatar do usuário - só mostra se ele tiver foto
     const getAvatarUrl = () => {
-        // Prioridade: 1) Imagem local escolhida, 2) Foto do Firebase
-        if (imageUri) return imageUri;
-        if (user?.photoURL) return user.photoURL;
-        return null;
+        if (imageUri) return imageUri; // Foto escolhida pelo usuário
+        if (user?.photoURL) return user.photoURL; // Foto salva no Firebase
+        return null; // Sem foto - mostra placeholder
     };
 
-    const hasAvatar = !!getAvatarUrl();
+    const hasAvatar = getAvatarUrl() !== null;
 
     // Solicitar permissão para acessar galeria
     const requestPermission = async () => {
@@ -110,13 +111,14 @@ const EditProfileScreen = ({ navigation }) => {
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
-                aspect: [1, 1],
+                aspect: [1, 1], // Quadrado
                 quality: 0.8,
                 base64: false,
             });
 
             if (!result.canceled && result.assets[0]) {
                 setImageUri(result.assets[0].uri);
+                console.log('✅ Imagem selecionada da galeria');
             }
         } catch (error) {
             console.error('Erro ao selecionar imagem:', error);
@@ -145,6 +147,7 @@ const EditProfileScreen = ({ navigation }) => {
 
             if (!result.canceled && result.assets[0]) {
                 setImageUri(result.assets[0].uri);
+                console.log('✅ Foto tirada com câmera');
             }
         } catch (error) {
             console.error('Erro ao tirar foto:', error);
@@ -152,73 +155,70 @@ const EditProfileScreen = ({ navigation }) => {
         }
     };
 
-    // Função corrigida para remover foto
+    // Remover foto
     const removePhoto = async () => {
-        try {
-            setLoading(true);
-            
-            // 1. Limpar estado local IMEDIATAMENTE para feedback visual
-            setImageUri(null);
-            
-            // 2. Remover foto do Firebase
-            const result = await removeProfilePhoto();
-            
-            if (result.success) {
-                // 3. Sucesso - contexto já foi atualizado automaticamente
-                Alert.alert('Sucesso', 'Foto removida com sucesso!');
-            } else {
-                // 4. Erro - mostrar mensagem
-                Alert.alert('Erro', result.error || 'Não foi possível remover a foto.');
-            }
-        } catch (error) {
-            console.error('Erro ao remover foto:', error);
-            Alert.alert('Erro', 'Ocorreu um erro ao remover a foto.');
-        } finally {
-            setLoading(false);
-        }
+        Alert.alert(
+            'Remover Foto do Perfil',
+            'Esta ação não pode ser desfeita. Deseja continuar?',
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                    text: 'Sim, Remover',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            setLoading(true);
+                            const result = await removeProfilePhoto();
+                            if (result.success) {
+                                setImageUri(null); // Limpar estado local
+                                Alert.alert('Sucesso', 'Foto removida com sucesso!');
+                            } else {
+                                Alert.alert('Erro', result.error || 'Não foi possível remover a foto.');
+                            }
+                        } catch (error) {
+                            console.error('Erro ao remover foto:', error);
+                            Alert.alert('Erro', 'Ocorreu um erro ao remover a foto.');
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
-
-    // const removePhoto = async () => {
-    //     try {
-    //         setLoading(true);
-    //         const result = await removeProfilePhoto();
-            
-    //         if (result.success) {
-    //             // Limpar estado local
-    //             setImageUri(null);
-    //             Alert.alert('Sucesso', 'Foto removida com sucesso!');
-    //         } else {
-    //             Alert.alert('Erro', result.error || 'Não foi possível remover a foto.');
-    //         }
-    //     } catch (error) {
-    //         console.error('Erro ao remover foto:', error);
-    //         Alert.alert('Erro', 'Ocorreu um erro ao remover a foto.');
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
-
-    // Mostrar opções de imagem
+    // Mostrar opções de imagem - VERSÃO CORRIGIDA
     const showImageOptions = () => {
-        const options = [
-            { text: 'Cancelar', style: 'cancel' },
-            { text: 'Galeria', onPress: pickImage },
-            { text: 'Câmera', onPress: takePhoto },
-        ];
-
-        if (hasAvatar) {
-            options.splice(1, 0, { 
-                text: 'Remover foto', 
-                onPress: removePhoto,
-                style: 'destructive'
-            });
-        }
+        // Debug para verificar estado atual
+        console.log('🖼️ Avatar Debug:', {
+            hasAvatar,
+            imageUri,
+            userPhotoURL: user?.photoURL
+        });
 
         Alert.alert(
-            hasAvatar ? 'Alterar foto' : 'Adicionar foto',
-            'Como você gostaria de ' + (hasAvatar ? 'alterar' : 'adicionar') + ' sua foto?',
-            options
+            hasAvatar ? 'Alterar Foto do Perfil' : 'Adicionar Foto do Perfil',
+            'Escolha uma das opções abaixo:',
+            [
+                {
+                    text: 'Tirar Foto',
+                    onPress: takePhoto
+                },
+                {
+                    text: 'Escolher da Galeria',
+                    onPress: pickImage
+                },
+                // Só mostra "Remover" se realmente tem foto
+                ...(hasAvatar ? [{
+                    text: 'Remover Foto',
+                    style: 'destructive',
+                    onPress: removePhoto
+                }] : []),
+                {
+                    text: 'Cancelar',
+                    style: 'cancel'
+                }
+            ]
         );
     };
 
@@ -226,6 +226,7 @@ const EditProfileScreen = ({ navigation }) => {
     const validateFields = () => {
         let isValid = true;
         
+        // Reset errors
         setNameError('');
         setEmailError('');
         setCurrentPasswordError('');
@@ -301,9 +302,6 @@ const EditProfileScreen = ({ navigation }) => {
                 const photoResult = await uploadProfilePhoto(imageUri);
                 if (photoResult.success) {
                     updatesMade.push('foto');
-                    setImageUri(null); // Limpar após upload bem-sucedido
-                    // Aguardar um pouco para garantir que o contexto atualize
-                    await new Promise(resolve => setTimeout(resolve, 500));
                 } else {
                     errors.push(`Foto: ${photoResult.error}`);
                 }
@@ -334,11 +332,6 @@ const EditProfileScreen = ({ navigation }) => {
                 const passwordResult = await updatePassword(currentPassword, newPassword);
                 if (passwordResult.success) {
                     updatesMade.push('senha');
-                    // Limpar campos de senha após sucesso
-                    setCurrentPassword('');
-                    setNewPassword('');
-                    setConfirmPassword('');
-                    setShowPasswordSection(false);
                 } else {
                     errors.push(`Senha: ${passwordResult.error}`);
                 }
@@ -665,6 +658,7 @@ const EditProfileScreen = ({ navigation }) => {
                         </View>
                     </View>
 
+                    {/* Bottom spacing */}
                     <View style={styles.bottomSpacing} />
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -862,7 +856,8 @@ export default EditProfileScreen;
 //         updateEmail,
 //         updatePassword,
 //         updateBio,
-//         getBio
+//         getBio,
+//         refreshUser    
 //     } = useAuth();
     
 //     const [loading, setLoading] = useState(false);
@@ -892,6 +887,14 @@ export default EditProfileScreen;
 //         loadBio();
 //     }, []);
 
+//     // Monitorar mudanças no user.photoURL
+//     useEffect(() => {
+//         // Se photoURL foi removido e não há imagem local, garantir estados limpos
+//         if (!user?.photoURL && !imageUri) {
+//             setImageUri(null);
+//         }
+//     }, [user?.photoURL]);
+
 //     const loadBio = async () => {
 //         try {
 //             const result = await getBio();
@@ -903,14 +906,15 @@ export default EditProfileScreen;
 //         }
 //     };
 
-//     // Avatar do usuário - só mostra se ele tiver foto
+//     // Função corrigida para obter avatar
 //     const getAvatarUrl = () => {
-//         if (imageUri) return imageUri; // Foto escolhida pelo usuário
-//         if (user?.photoURL) return user.photoURL; // Foto salva no Firebase
-//         return null; // Sem foto - mostra placeholder
+//         // Prioridade: 1) Imagem local escolhida, 2) Foto do Firebase
+//         if (imageUri) return imageUri;
+//         if (user?.photoURL) return user.photoURL;
+//         return null;
 //     };
 
-//     const hasAvatar = getAvatarUrl() !== null;
+//     const hasAvatar = !!getAvatarUrl();
 
 //     // Solicitar permissão para acessar galeria
 //     const requestPermission = async () => {
@@ -935,15 +939,13 @@ export default EditProfileScreen;
 //             const result = await ImagePicker.launchImageLibraryAsync({
 //                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
 //                 allowsEditing: true,
-//                 aspect: [1, 1], // Quadrado
+//                 aspect: [1, 1],
 //                 quality: 0.8,
 //                 base64: false,
 //             });
 
 //             if (!result.canceled && result.assets[0]) {
 //                 setImageUri(result.assets[0].uri);
-//                 // Aqui você implementaria o upload para o Firebase Storage
-//                 // await uploadImageToFirebase(result.assets[0].uri);
 //             }
 //         } catch (error) {
 //             console.error('Erro ao selecionar imagem:', error);
@@ -972,7 +974,6 @@ export default EditProfileScreen;
 
 //             if (!result.canceled && result.assets[0]) {
 //                 setImageUri(result.assets[0].uri);
-//                 console.log('Foto tirada para upload');
 //             }
 //         } catch (error) {
 //             console.error('Erro ao tirar foto:', error);
@@ -980,15 +981,22 @@ export default EditProfileScreen;
 //         }
 //     };
 
-//     // Remover foto
+//     // Função corrigida para remover foto
 //     const removePhoto = async () => {
 //         try {
 //             setLoading(true);
+            
+//             // 1. Limpar estado local IMEDIATAMENTE para feedback visual
+//             setImageUri(null);
+            
+//             // 2. Remover foto do Firebase
 //             const result = await removeProfilePhoto();
+            
 //             if (result.success) {
-//                 setImageUri(null);
+//                 // 3. Sucesso - contexto já foi atualizado automaticamente
 //                 Alert.alert('Sucesso', 'Foto removida com sucesso!');
 //             } else {
+//                 // 4. Erro - mostrar mensagem
 //                 Alert.alert('Erro', result.error || 'Não foi possível remover a foto.');
 //             }
 //         } catch (error) {
@@ -1007,7 +1015,6 @@ export default EditProfileScreen;
 //             { text: 'Câmera', onPress: takePhoto },
 //         ];
 
-//         // Se já tem foto, adiciona opção de remover
 //         if (hasAvatar) {
 //             options.splice(1, 0, { 
 //                 text: 'Remover foto', 
@@ -1027,7 +1034,6 @@ export default EditProfileScreen;
 //     const validateFields = () => {
 //         let isValid = true;
         
-//         // Reset errors
 //         setNameError('');
 //         setEmailError('');
 //         setCurrentPasswordError('');
@@ -1103,6 +1109,9 @@ export default EditProfileScreen;
 //                 const photoResult = await uploadProfilePhoto(imageUri);
 //                 if (photoResult.success) {
 //                     updatesMade.push('foto');
+//                     setImageUri(null); // Limpar após upload bem-sucedido
+//                     // Aguardar um pouco para garantir que o contexto atualize
+//                     await new Promise(resolve => setTimeout(resolve, 500));
 //                 } else {
 //                     errors.push(`Foto: ${photoResult.error}`);
 //                 }
@@ -1133,6 +1142,11 @@ export default EditProfileScreen;
 //                 const passwordResult = await updatePassword(currentPassword, newPassword);
 //                 if (passwordResult.success) {
 //                     updatesMade.push('senha');
+//                     // Limpar campos de senha após sucesso
+//                     setCurrentPassword('');
+//                     setNewPassword('');
+//                     setConfirmPassword('');
+//                     setShowPasswordSection(false);
 //                 } else {
 //                     errors.push(`Senha: ${passwordResult.error}`);
 //                 }
@@ -1459,7 +1473,6 @@ export default EditProfileScreen;
 //                         </View>
 //                     </View>
 
-//                     {/* Bottom spacing */}
 //                     <View style={styles.bottomSpacing} />
 //                 </ScrollView>
 //             </KeyboardAvoidingView>
@@ -1604,32 +1617,6 @@ export default EditProfileScreen;
 //         textAlign: 'right',
 //         marginTop: -8,
 //         marginBottom: 16,
-//     },
-//     inputContainer: {
-//         marginBottom: 20,
-//     },
-//     inputLabel: {
-//         fontSize: 16,
-//         fontWeight: '500',
-//         color: '#FFFFFF',
-//         marginBottom: 8,
-//     },
-//     emailContainer: {
-//         backgroundColor: '#27272A',
-//         borderRadius: 8,
-//         padding: 16,
-//         borderWidth: 1,
-//         borderColor: '#3F3F46',
-//     },
-//     emailText: {
-//         fontSize: 16,
-//         color: '#D1D5DB',
-//         marginBottom: 4,
-//     },
-//     emailHint: {
-//         fontSize: 12,
-//         color: '#9CA3AF',
-//         lineHeight: 16,
 //     },
 //     infoSection: {
 //         paddingHorizontal: 20,
