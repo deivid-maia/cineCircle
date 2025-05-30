@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { db, auth } from '../services/firebase';
+import activityService from '../services/activityService';
 
 // Criar o contexto
 const MoviesContext = createContext({});
@@ -68,65 +69,151 @@ export const MoviesProvider = ({ children }) => {
   };
 
   // Adicionar filme à lista
-  const addMovieToList = async (movieData, status, options = {}) => {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      throw new Error('Usuário não autenticado');
-    }
+  // const addMovieToList = async (movieData, status, options = {}) => {
+  //   const currentUser = auth.currentUser;
+  //   if (!currentUser) {
+  //     throw new Error('Usuário não autenticado');
+  //   }
 
-    try {
-      console.log('➕ Adicionando filme:', movieData.title, 'Status:', status);
+  //   try {
+  //     console.log('➕ Adicionando filme:', movieData.title, 'Status:', status);
 
-      // Verificar se o filme já existe
-      const existingQuery = await db.collection('userMovies')
-        .where('userId', '==', currentUser.uid)
-        .where('movieId', '==', movieData.id)
-        .get();
+  //     // Verificar se o filme já existe
+  //     const existingQuery = await db.collection('userMovies')
+  //       .where('userId', '==', currentUser.uid)
+  //       .where('movieId', '==', movieData.id)
+  //       .get();
 
-      if (!existingQuery.empty) {
-        // Atualizar filme existente
-        const docRef = existingQuery.docs[0].ref;
-        const currentData = existingQuery.docs[0].data();
+  //     if (!existingQuery.empty) {
+  //       // Atualizar filme existente
+  //       const docRef = existingQuery.docs[0].ref;
+  //       const currentData = existingQuery.docs[0].data();
         
-        await docRef.update({
-          status,
-          isFavorite: options.isFavorite !== undefined ? options.isFavorite : currentData.isFavorite,
-          userRating: options.rating || currentData.userRating,
-          userReview: options.review || currentData.userReview,
-          updatedAt: new Date()
-        });
-        console.log('✅ Filme atualizado');
-      } else {
-        // Criar novo filme
-        const newMovie = {
-          userId: currentUser.uid,
-          movieId: movieData.id,
-          title: movieData.title,
-          posterPath: movieData.poster_path,
-          releaseDate: movieData.release_date,
-          overview: movieData.overview,
-          voteAverage: movieData.vote_average,
-          status,
-          isFavorite: options.isFavorite || false,
-          userRating: options.rating || null,
-          userReview: options.review || '',
-          addedAt: new Date(),
-          updatedAt: new Date()
-        };
+  //       await docRef.update({
+  //         status,
+  //         isFavorite: options.isFavorite !== undefined ? options.isFavorite : currentData.isFavorite,
+  //         userRating: options.rating || currentData.userRating,
+  //         userReview: options.review || currentData.userReview,
+  //         updatedAt: new Date()
+  //       });
+  //       console.log('✅ Filme atualizado');
+  //     } else {
+  //       // Criar novo filme
+  //       const newMovie = {
+  //         userId: currentUser.uid,
+  //         movieId: movieData.id,
+  //         title: movieData.title,
+  //         posterPath: movieData.poster_path,
+  //         releaseDate: movieData.release_date,
+  //         overview: movieData.overview,
+  //         voteAverage: movieData.vote_average,
+  //         status,
+  //         isFavorite: options.isFavorite || false,
+  //         userRating: options.rating || null,
+  //         userReview: options.review || '',
+  //         addedAt: new Date(),
+  //         updatedAt: new Date()
+  //       };
 
-        await db.collection('userMovies').add(newMovie);
-        console.log('✅ Filme adicionado');
+  //       await db.collection('userMovies').add(newMovie);
+  //       console.log('✅ Filme adicionado');
+  //     }
+
+  //     // Recarregar lista (mas não aguardar para melhor UX)
+  //     setTimeout(() => refreshUserMovies(), 500);
+  //     return { success: true };
+
+  //   } catch (error) {
+  //     console.error('❌ Erro ao adicionar filme:', error);
+  //     throw error;
+  //   }
+  // };
+
+  const addMovieToList = async (movieData, status, options = {}) => {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('Usuário não autenticado');
+  }
+
+  try {
+    console.log('➕ Adicionando filme:', movieData.title, 'Status:', status);
+
+    // Verificar se o filme já existe
+    const existingQuery = await db.collection('userMovies')
+      .where('userId', '==', currentUser.uid)
+      .where('movieId', '==', movieData.id)
+      .get();
+
+    let isNewMovie = existingQuery.empty;
+    let activityType = null;
+
+    if (!existingQuery.empty) {
+      // Atualizar filme existente
+      const docRef = existingQuery.docs[0].ref;
+      const currentData = existingQuery.docs[0].data();
+      
+      await docRef.update({
+        status,
+        isFavorite: options.isFavorite !== undefined ? options.isFavorite : currentData.isFavorite,
+        userRating: options.rating || currentData.userRating,
+        userReview: options.review || currentData.userReview,
+        updatedAt: new Date()
+      });
+
+      // Determinar tipo de atividade para filme existente
+      if (options.rating && !currentData.userRating) {
+        activityType = 'movie_rated';
+      } else if (options.review && !currentData.userReview) {
+        activityType = 'movie_reviewed';
       }
 
-      // Recarregar lista (mas não aguardar para melhor UX)
-      setTimeout(() => refreshUserMovies(), 500);
-      return { success: true };
+    } else {
+      // Criar novo filme
+      const newMovie = {
+        userId: currentUser.uid,
+        movieId: movieData.id,
+        title: movieData.title,
+        posterPath: movieData.poster_path,
+        releaseDate: movieData.release_date,
+        overview: movieData.overview,
+        voteAverage: movieData.vote_average,
+        status,
+        isFavorite: options.isFavorite || false,
+        userRating: options.rating || null,
+        userReview: options.review || '',
+        addedAt: new Date(),
+        updatedAt: new Date()
+      };
 
-    } catch (error) {
-      console.error('❌ Erro ao adicionar filme:', error);
-      throw error;
+      await db.collection('userMovies').add(newMovie);
+
+      // Determinar tipo de atividade para novo filme
+      if (status === 'watched' && options.rating) {
+        activityType = 'movie_rated';
+      } else if (status) {
+        activityType = 'movie_added';
+      }
     }
-  };
+
+    // 🔥 REGISTRAR ATIVIDADE
+    if (activityType) {
+      await activityService.recordMovieActivity(activityType, movieData, {
+        rating: options.rating,
+        review: options.review,
+        isPublic: true // Você pode adicionar configuração de privacidade
+      });
+    }
+
+    // Recarregar lista
+    setTimeout(() => refreshUserMovies(), 500);
+    return { success: true };
+
+  } catch (error) {
+    console.error('❌ Erro ao adicionar filme:', error);
+    throw error;
+  }
+};
+
 
   // 🔥 FUNÇÃO CORRIGIDA - Alternar favorito
   const toggleFavorite = async (movieData) => {

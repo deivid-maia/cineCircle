@@ -6,10 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Suas telas dentro do menu principal - app principal
 import HomeScreen from '../screens/HomeScreen';
-import FriendSearchScreen from '../screens/FriendSearchScreen';
 import AddContentScreen from '../screens/AddContentScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ExploreScreen from '../screens/ExploreScreen';
+
+// ✅ NOVA TELA DE AMIGOS FUNCIONAL
+import FriendsScreen from '../screens/FriendsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -68,10 +70,10 @@ const TabNavigator = () => {
           ),
         }}
       />
-      
+
       <Tab.Screen
         name="FriendsTab"
-        component={FriendSearchScreen}
+        component={FriendsScreen}
         options={{
           tabBarLabel: 'Amigos',
           tabBarIcon: ({ color, size }) => (
@@ -107,4 +109,3 @@ const styles = StyleSheet.create({
 });
 
 export default TabNavigator;
-

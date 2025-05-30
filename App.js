@@ -7,10 +7,10 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DefaultTheme } from '@react-navigation/native';
 import * as NavigationBar from 'expo-navigation-bar';
 
-// Contexto de autenticação
+// Contextos
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
-
 import { MoviesProvider } from './src/contexts/useMovies';
+import { FriendsProvider } from './src/contexts/FriendsContext'; // 👥 NOVO CONTEXTO
 
 // Telas de autenticação
 import InitialScreen from './src/screens/InitialScreen';
@@ -24,6 +24,7 @@ import DrawerNavigator from './src/navigation/DrawerNavigator';
 
 // Telas independentes do drawer/tab
 import MovieDetailScreen from './src/screens/MovieDetailScreen';
+
 
 const Stack = createNativeStackNavigator();
 
@@ -120,12 +121,14 @@ export default function App() {
   return (
     <AuthProvider>
       <MoviesProvider>
-        <SafeAreaProvider>
-          <View style={styles.container}>
-            <StatusBar style="light" backgroundColor="#18181B" />
-            <AppNavigator />
-          </View>
-        </SafeAreaProvider>
+        <FriendsProvider> {/* 👥 NOVO PROVIDER */}
+          <SafeAreaProvider>
+            <View style={styles.container}>
+              <StatusBar style="light" backgroundColor="#18181B" />
+              <AppNavigator />
+            </View>
+          </SafeAreaProvider>
+        </FriendsProvider>
       </MoviesProvider>
     </AuthProvider>
   );
