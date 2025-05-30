@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  SafeAreaView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
   StatusBar,
   TouchableOpacity,
   Image,
@@ -63,7 +63,7 @@ const FriendsScreen = ({ navigation }) => {
   const handleSendRequest = async (targetUserId, targetName) => {
     try {
       const result = await sendFriendRequest(targetUserId);
-      
+
       if (result.success) {
         Alert.alert('Sucesso!', `Solicitação enviada para ${targetName}`);
       } else {
@@ -78,7 +78,7 @@ const FriendsScreen = ({ navigation }) => {
   const handleAcceptRequest = async (requestId, senderName) => {
     try {
       const result = await acceptFriendRequest(requestId);
-      
+
       if (result.success) {
         Alert.alert('Sucesso!', `Agora você e ${senderName} são amigos!`);
       } else {
@@ -135,32 +135,32 @@ const FriendsScreen = ({ navigation }) => {
   const formatDateSafely = (date) => {
     try {
       if (!date) return 'Recente';
-      
+
       // Se é um objeto Date válido
       if (date instanceof Date && !isNaN(date.getTime())) {
-        return date.toLocaleDateString('pt-BR', { 
+        return date.toLocaleDateString('pt-BR', {
           day: 'numeric',
           month: 'short',
           hour: '2-digit',
           minute: '2-digit'
         });
       }
-      
+
       // Se tem método toDate (Timestamp do Firestore)
       if (date.toDate && typeof date.toDate === 'function') {
-        return date.toDate().toLocaleDateString('pt-BR', { 
+        return date.toDate().toLocaleDateString('pt-BR', {
           day: 'numeric',
           month: 'short',
           hour: '2-digit',
           minute: '2-digit'
         });
       }
-      
+
       // Tentar converter de string
       if (typeof date === 'string') {
         const converted = new Date(date);
         if (!isNaN(converted.getTime())) {
-          return converted.toLocaleDateString('pt-BR', { 
+          return converted.toLocaleDateString('pt-BR', {
             day: 'numeric',
             month: 'short',
             hour: '2-digit',
@@ -168,7 +168,7 @@ const FriendsScreen = ({ navigation }) => {
           });
         }
       }
-      
+
       // Fallback
       return 'Recente';
     } catch (error) {
@@ -189,7 +189,7 @@ const FriendsScreen = ({ navigation }) => {
       <View style={styles.friendCardHeader}>
         <View style={styles.friendInfo}>
           <Image
-            source={{ 
+            source={{
               uri: item.photoURL || getDefaultAvatar(item.displayName, item.email)
             }}
             style={styles.avatar}
@@ -209,8 +209,8 @@ const FriendsScreen = ({ navigation }) => {
             </View>
           </View>
         </View>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.connectButton}
           onPress={() => handleSendRequest(item.uid, item.displayName || item.email || 'Usuário')}
           disabled={loading}
@@ -223,12 +223,19 @@ const FriendsScreen = ({ navigation }) => {
   );
 
   // Renderizar item de amigo
+  // Renderizar item de amigo
   const renderFriendItem = ({ item }) => (
     <View style={styles.friendCard}>
-      <View style={styles.friendCardHeader}>
+      {/* Área clicável para ir ao perfil */}
+      <TouchableOpacity
+        style={styles.friendCardMain}
+        onPress={() => navigation.navigate('FriendProfile', {
+          friend: item
+        })}
+      >
         <View style={styles.friendInfo}>
           <Image
-            source={{ 
+            source={{
               uri: item.photoURL || getDefaultAvatar(item.displayName, item.email)
             }}
             style={[styles.avatar, styles.avatarWithBorder]}
@@ -247,22 +254,90 @@ const FriendsScreen = ({ navigation }) => {
             )}
           </View>
         </View>
-        
-        <TouchableOpacity 
-          onPress={() => handleRemoveFriend(item.uid, item.displayName || item.email || 'Usuário')}
-        >
-          <Feather name="more-vertical" size={20} color="#9CA3AF" />
-        </TouchableOpacity>
-      </View>
+
+        {/* Ícone de seta indicando que é clicável */}
+        <Feather name="chevron-right" size={20} color="#9CA3AF" />
+      </TouchableOpacity>
+
+      {/* Botão de menu (não clicável junto com o card) */}
+      <TouchableOpacity
+        style={styles.menuButton}
+        onPress={() => showFriendMenu(item)}
+      >
+        <Feather name="more-vertical" size={20} color="#9CA3AF" />
+      </TouchableOpacity>
     </View>
   );
+
+  // Função para mostrar menu do amigo
+  const showFriendMenu = (friend) => {
+    Alert.alert(
+      friend.displayName || friend.email || 'Amigo',
+      'O que você gostaria de fazer?',
+      [
+        {
+          text: 'Ver Perfil',
+          onPress: () => navigation.navigate('FriendProfile', { friend })
+        },
+        {
+          text: 'Remover Amigo',
+          style: 'destructive',
+          onPress: () => handleRemoveFriend(friend.uid, friend.displayName || friend.email || 'Usuário')
+        },
+        {
+          text: 'Cancelar',
+          style: 'cancel'
+        }
+      ]
+    );
+  };
+  // const renderFriendItem = ({ item }) => (
+  //   <View style={styles.friendCard}>
+  //     <View style={styles.friendCardHeader}>
+  //       <View style={styles.friendInfo}>
+  //         <Image
+  //           source={{
+  //             uri: item.photoURL || getDefaultAvatar(item.displayName, item.email)
+  //           }}
+  //           style={[styles.avatar, styles.avatarWithBorder]}
+  //         />
+  //         <View style={styles.friendDetails}>
+  //           <Text style={styles.friendName}>
+  //             {item.displayName || (item.email ? item.email.split('@')[0] : 'Usuário')}
+  //           </Text>
+  //           <Text style={styles.friendUsername}>
+  //             @{item.email ? item.email.split('@')[0] : 'usuario'}
+  //           </Text>
+  //           {item.friendsSince && (
+  //             <Text style={styles.friendsSince}>
+  //               Amigos desde {formatDateSafely(item.friendsSince)}
+  //             </Text>
+  //           )}
+  //         </View>
+  //         <TouchableOpacity
+  //           style={styles.friendCard}
+  //           onPress={() => navigation.navigate('FriendProfile', {
+  //             friend: item,
+  //             friendId: item.uid
+  //           })}
+  //         ></TouchableOpacity>
+  //       </View>
+
+  //       <TouchableOpacity
+  //         onPress={() => handleRemoveFriend(item.uid, item.displayName || item.email || 'Usuário')}
+  //       >
+  //         <Feather name="more-vertical" size={20} color="#9CA3AF" />
+  //       </TouchableOpacity>
+  //     </View>
+  //   </View>
+  // );
 
   // 🔥 RENDERIZAR SOLICITAÇÃO COM FORMATAÇÃO SEGURA DE DATA
   const renderRequestItem = ({ item }) => (
     <View style={styles.requestCard}>
       <View style={styles.friendInfo}>
         <Image
-          source={{ 
+          source={{
             uri: item.senderAvatar || getDefaultAvatar(item.senderName, null)
           }}
           style={styles.avatar}
@@ -277,17 +352,17 @@ const FriendsScreen = ({ navigation }) => {
           )}
         </View>
       </View>
-      
+
       <View style={styles.requestActions}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.requestButton, styles.acceptButton]}
           onPress={() => handleAcceptRequest(item.id, item.senderName)}
           disabled={loading}
         >
           <Feather name="check" size={16} color="white" />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={[styles.requestButton, styles.rejectButton]}
           onPress={() => handleRejectRequest(item.id, item.senderName)}
           disabled={loading}
@@ -304,7 +379,7 @@ const FriendsScreen = ({ navigation }) => {
       <View style={styles.friendCardHeader}>
         <View style={styles.friendInfo}>
           <Image
-            source={{ 
+            source={{
               uri: item.photoURL || getDefaultAvatar(item.displayName, item.email)
             }}
             style={styles.avatar}
@@ -321,8 +396,8 @@ const FriendsScreen = ({ navigation }) => {
             )}
           </View>
         </View>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.connectButton}
           onPress={() => handleSendRequest(item.uid, item.displayName || item.email || 'Usuário')}
           disabled={loading}
@@ -339,7 +414,7 @@ const FriendsScreen = ({ navigation }) => {
     if (searchQuery.length > 2) {
       return searchResults;
     }
-    
+
     switch (activeTab) {
       case 'sugeridos':
         return suggestedFriends;
@@ -357,7 +432,7 @@ const FriendsScreen = ({ navigation }) => {
     if (searchQuery.length > 2) {
       return renderSearchItem;
     }
-    
+
     switch (activeTab) {
       case 'sugeridos':
         return renderSuggestedItem;
@@ -373,7 +448,7 @@ const FriendsScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Amigos</Text>
@@ -388,7 +463,7 @@ const FriendsScreen = ({ navigation }) => {
           )}
         </View>
       </View>
-      
+
       {/* Barra de pesquisa */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
@@ -407,7 +482,7 @@ const FriendsScreen = ({ navigation }) => {
           )}
         </View>
       </View>
-      
+
       {/* Abas */}
       {searchQuery.length <= 2 && (
         <View style={styles.tabsContainer}>
@@ -420,7 +495,7 @@ const FriendsScreen = ({ navigation }) => {
             </Text>
             <Text style={styles.tabCount}>({suggestedFriends.length})</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.tab, activeTab === 'amigos' && styles.activeTab]}
             onPress={() => setActiveTab('amigos')}
@@ -430,7 +505,7 @@ const FriendsScreen = ({ navigation }) => {
             </Text>
             <Text style={styles.tabCount}>({friends.length})</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.tab, activeTab === 'solicitacoes' && styles.activeTab]}
             onPress={() => setActiveTab('solicitacoes')}
@@ -446,7 +521,7 @@ const FriendsScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       )}
-      
+
       {/* Lista */}
       <FlatList
         data={getCurrentTabData()}
@@ -462,23 +537,23 @@ const FriendsScreen = ({ navigation }) => {
         }
         ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
-            <Feather 
+            <Feather
               name={
-                searchQuery.length > 2 
-                  ? "search" 
-                  : activeTab === 'amigos' 
-                    ? "users" 
+                searchQuery.length > 2
+                  ? "search"
+                  : activeTab === 'amigos'
+                    ? "users"
                     : activeTab === 'solicitacoes'
                       ? "mail"
                       : "user-plus"
-              } 
-              size={48} 
-              color="#9CA3AF" 
+              }
+              size={48}
+              color="#9CA3AF"
             />
             <Text style={styles.emptyTitle}>
-              {searchQuery.length > 2 
+              {searchQuery.length > 2
                 ? 'Nenhum usuário encontrado'
-                : activeTab === 'amigos' 
+                : activeTab === 'amigos'
                   ? 'Nenhum amigo ainda'
                   : activeTab === 'solicitacoes'
                     ? 'Nenhuma solicitação'
@@ -486,9 +561,9 @@ const FriendsScreen = ({ navigation }) => {
               }
             </Text>
             <Text style={styles.emptyText}>
-              {searchQuery.length > 2 
+              {searchQuery.length > 2
                 ? `Não encontramos ninguém com "${searchQuery}"`
-                : activeTab === 'amigos' 
+                : activeTab === 'amigos'
                   ? 'Quando você adicionar amigos, eles aparecerão aqui'
                   : activeTab === 'solicitacoes'
                     ? 'Solicitações de amizade aparecerão aqui'
@@ -499,8 +574,8 @@ const FriendsScreen = ({ navigation }) => {
         )}
         ListHeaderComponent={() => (
           <Text style={styles.listHeader}>
-            {searchQuery.length > 2 
-              ? `Resultados para "${searchQuery}"` 
+            {searchQuery.length > 2
+              ? `Resultados para "${searchQuery}"`
               : activeTab === 'sugeridos'
                 ? 'Pessoas que você pode conhecer'
                 : activeTab === 'amigos'
@@ -780,6 +855,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(24, 24, 27, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  friendCard: {
+    backgroundColor: '#27272A',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  friendCardMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  menuButton: {
+    padding: 8,
+    marginLeft: 12,
   },
 });
 

@@ -3,15 +3,13 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, StyleSheet, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import FriendsStackNavigator from './FriendsStackNavigator';
 
 // Suas telas dentro do menu principal - app principal
 import HomeScreen from '../screens/HomeScreen';
 import AddContentScreen from '../screens/AddContentScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ExploreScreen from '../screens/ExploreScreen';
-
-// ✅ NOVA TELA DE AMIGOS FUNCIONAL
-import FriendsScreen from '../screens/FriendsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -46,7 +44,7 @@ const TabNavigator = () => {
           ),
         }}
       />
-      
+
       <Tab.Screen
         name="ExploreTab"
         component={ExploreScreen}
@@ -57,7 +55,7 @@ const TabNavigator = () => {
           ),
         }}
       />
-      
+
       <Tab.Screen
         name="AddContent"
         component={AddContentScreen}
@@ -73,7 +71,7 @@ const TabNavigator = () => {
 
       <Tab.Screen
         name="FriendsTab"
-        component={FriendsScreen}
+        component={FriendsStackNavigator}  // 🔥 APENAS ESTA ABA DE AMIGOS
         options={{
           tabBarLabel: 'Amigos',
           tabBarIcon: ({ color, size }) => (
@@ -81,7 +79,7 @@ const TabNavigator = () => {
           ),
         }}
       />
-      
+
       <Tab.Screen
         name="ProfileTab"
         component={ProfileScreen}
@@ -103,7 +101,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     justifyContent: 'center',
-    alignItems: 'center',    
+    alignItems: 'center',
     marginBottom: Platform.OS === 'ios' ? 0 : 8,
   },
 });

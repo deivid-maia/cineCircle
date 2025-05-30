@@ -1,9 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import FriendSearchScreen from '../screens/FriendSearchScreen';
-import FriendsFeedScreen from '../screens/FriendsFeedScreen';
-import FriendProfileScreen from '../screens/FriendProfileScreen'; // Você pode criar depois
 import FriendsScreen from '../screens/FriendsScreen';
+import FriendProfileScreen from '../screens/FriendProfileScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -15,8 +13,7 @@ const FriendsStackNavigator = () => {
         contentStyle: { backgroundColor: '#18181B' },
       }}
     >
-      <Stack.Screen name="FriendSearch" component={FriendsScreen} />
-      <Stack.Screen name="FriendsFeed" component={FriendsFeedScreen} />
+      <Stack.Screen name="FriendsMain" component={FriendsScreen} />
       <Stack.Screen name="FriendProfile" component={FriendProfileScreen} />
     </Stack.Navigator>
   );

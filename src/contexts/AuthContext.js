@@ -50,41 +50,31 @@ export const AuthProvider = ({ children }) => {
 
   // 🚀 FUNÇÃO PARA CRIAR PERFIL PÚBLICO
   const createUserProfile = async (user) => {
-    try {
-      if (!user) return;
+  try {
+    if (!user) return;
 
-      console.log('AuthContext - Criando perfil público para:', user.uid);
+    console.log('AuthContext - Criando perfil público para:', user.uid);
 
-      // Verificar se já existe
-      const userDoc = await db.collection('users').doc(user.uid).get();
-      
-      if (!userDoc.exists) {
-        // Criar perfil público no Firestore
-        await db.collection('users').doc(user.uid).set({
-          displayName: user.displayName || 'Usuário',
-          email: user.email, // Pode remover se quiser manter privado
-          photoURL: user.photoURL || null,
-          bio: '',
-          isPublic: true,
-          createdAt: new Date(),
-          lastSeen: new Date()
-        });
+    const userDoc = await db.collection('users').doc(user.uid).get();
+    
+    if (!userDoc.exists) {
+      // 🔥 ESTRUTURA CORRETA E COMPLETA
+      await db.collection('users').doc(user.uid).set({
+        displayName: user.displayName || 'Usuário',
+        email: user.email, // 🎯 GARANTIR QUE EMAIL SEMPRE EXISTE
+        photoURL: user.photoURL || null,
+        bio: '',
+        isPublic: true,
+        createdAt: new Date(),
+        lastSeen: new Date()
+      });
 
-        console.log('AuthContext - Perfil público criado');
-      } else {
-        // Atualizar lastSeen
-        await db.collection('users').doc(user.uid).update({
-          lastSeen: new Date()
-        });
-      }
-
-      // ✅ Inicializar estrutura de amigos
-      await friendsService.initializeUserFriendsStructure(user.uid);
-
-    } catch (error) {
-      console.error('AuthContext - Erro ao criar perfil:', error);
+      console.log('AuthContext - Perfil público criado');
     }
-  };
+  } catch (error) {
+    console.error('AuthContext - Erro ao criar perfil:', error);
+  }
+};
 
   // Função de login
   const login = async (email, password) => {

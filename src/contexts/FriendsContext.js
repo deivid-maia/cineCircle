@@ -47,36 +47,69 @@ export const FriendsProvider = ({ children }) => {
   };
 
   // Carregar dados iniciais
-  const loadInitialData = async () => {
-    setLoading(true);
-    try {
-      await Promise.all([
-        loadFriends(),
-        loadSuggestedFriends(),
-        loadFriendRequests(),
-        loadStats()
-      ]);
-    } catch (error) {
-      console.error('❌ Erro ao carregar dados iniciais:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+const loadInitialData = async () => {
+  console.log('🚀 CARREGANDO DADOS INICIAIS - FriendsContext');
+  
+  setLoading(true);
+  try {
+    console.log('📋 Executando Promise.all...');
+    console.log('📋 Chamando loadFriends...');
+    console.log('📋 Chamando loadSuggestedFriends...');
+    console.log('📋 Chamando loadFriendRequests...');
+    console.log('📋 Chamando loadStats...');
+    
+    await Promise.all([
+      loadFriends(),           // 🎯 VERIFICAR SE ESTA LINHA EXISTE
+      loadSuggestedFriends(),
+      loadFriendRequests(),
+      loadStats()
+    ]);
+    console.log('✅ Promise.all concluído');
+  } catch (error) {
+    console.error('❌ Erro ao carregar dados iniciais:', error);
+  } finally {
+    setLoading(false);
+    console.log('🏁 Loading finalizado');
+  }
+};
+  
   // 👥 CARREGAR LISTA DE AMIGOS
-  const loadFriends = async () => {
-    try {
-      const result = await friendsService.getUserFriends();
-      if (result.success) {
-        setFriends(result.friends);
-        console.log('✅ Amigos carregados:', result.friends.length);
-      } else {
-        console.error('❌ Erro ao carregar amigos:', result.error);
-      }
-    } catch (error) {
-      console.error('❌ Erro ao carregar amigos:', error);
+const loadFriends = async () => {
+  console.log('🚀 CHAMANDO loadFriends no FriendsContext - INÍCIO');
+  
+  try {
+    console.log('📞 Chamando friendsService.getUserFriends()...');
+    const result = await friendsService.getUserFriends();
+    
+    console.log('📊 Resultado completo do getUserFriends:', result);
+    console.log('📊 Success:', result.success);
+    console.log('📊 Friends length:', result.friends?.length);
+    console.log('📊 Error:', result.error);
+    
+    if (result.success) {
+      console.log('✅ Resultado bem-sucedido, atualizando estado...');
+      console.log('👥 Lista de amigos recebida:', result.friends);
+      
+      setFriends(result.friends);
+      
+      console.log('✅ Estado atualizado - amigos carregados:', result.friends.length);
+    } else {
+      console.error('❌ Erro no resultado:', result.error);
+      console.error('❌ Limpando lista de amigos devido ao erro');
+      setFriends([]);
     }
-  };
+  } catch (error) {
+    console.error('❌ Erro CATCH ao carregar amigos:', error);
+    console.error('❌ Tipo do erro:', typeof error);
+    console.error('❌ Mensagem do erro:', error.message);
+    console.error('❌ Stack do erro:', error.stack);
+    
+    // Limpar lista em caso de erro
+    setFriends([]);
+  }
+  
+  console.log('🏁 FINALIZANDO loadFriends no FriendsContext');
+};
 
   // 👥 CARREGAR SUGESTÕES DE AMIGOS
   const loadSuggestedFriends = async () => {
