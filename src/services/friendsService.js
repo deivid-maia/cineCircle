@@ -561,62 +561,113 @@ getUserFriends: async (userId = null) => {
   },
   
   // 🎯 OBTER SUGESTÕES DE AMIGOS (funcionalidade básica)
-  getSuggestedFriends: async () => {
-    try {
-      console.log('FriendsService - Buscando sugestões');
+  // 🎯 OBTER SUGESTÕES DE AMIGOS (corrigida - sem this)
+getSuggestedFriends: async () => {
+  try {
+    console.log('FriendsService - Buscando sugestões');
 
-      const currentUserId = auth.currentUser?.uid;
-      if (!currentUserId) {
-        return { success: false, error: 'Usuário não autenticado' };
-      }
-
-      // Obter IDs dos amigos atuais para excluir das sugestões
-      let currentFriendIds = [];
-      try {
-        const userFriendsDoc = await db.collection('userFriends').doc(currentUserId).get();
-        if (userFriendsDoc.exists) {
-          currentFriendIds = userFriendsDoc.data().friendIds || [];
-        }
-      } catch (error) {
-        console.log('Erro ao buscar amigos atuais:', error);
-      }
-
-      // Buscar usuários aleatórios que não são amigos
-      const usersSnapshot = await db
-        .collection('users')
-        .limit(20)
-        .get();
-
-      const suggestions = [];
-      usersSnapshot.docs.forEach(doc => {
-        // Não incluir o próprio usuário nem amigos atuais
-        if (doc.id !== currentUserId && !currentFriendIds.includes(doc.id)) {
-          const userData = doc.data();
-          // ✅ VALIDAR DADOS ANTES DE ADICIONAR
-          if (userData && (userData.displayName || userData.email)) {
-            suggestions.push({
-              uid: doc.id,
-              id: doc.id, // Adicionar também 'id' para compatibilidade
-              ...userData,
-              mutualFriends: Math.floor(Math.random() * 5) // Simulado por enquanto
-            });
-          }
-        }
-      });
-
-      // Limitar a 10 sugestões
-      const limitedSuggestions = suggestions.slice(0, 10);
-
-      console.log('FriendsService - Sugestões encontradas:', limitedSuggestions.length);
-      return { success: true, suggestions: limitedSuggestions };
-
-    } catch (error) {
-      console.error('FriendsService - Erro ao buscar sugestões:', error);
-      return { success: false, error: error.message };
+    const currentUserId = auth.currentUser?.uid;
+    if (!currentUserId) {
+      return { success: false, error: 'Usuário não autenticado' };
     }
-  },
 
-  // 🎬 BUSCAR FILMES DO AMIGO
+    // 🔥 OBTER AMIGOS ATUAIS DIRETO DO FIRESTORE
+    console.log('👥 Buscando amigos atuais...');
+    const friendshipsSnapshot = await db
+      .collection('friendships')
+      .where('status', '==', 'active')
+      .get();
+
+    const currentFriendIds = [];
+    friendshipsSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      // Se o usuário é user1Id, adicionar user2Id como amigo
+      if (data.user1Id === currentUserId) {
+        currentFriendIds.push(data.user2Id);
+      }
+      // Se o usuário é user2Id, adicionar user1Id como amigo  
+      else if (data.user2Id === currentUserId) {
+        currentFriendIds.push(data.user1Id);
+      }
+    });
+    
+    console.log('👥 IDs dos amigos atuais:', currentFriendIds);
+
+    // 🔥 OBTER SOLICITAÇÕES PENDENTES (enviadas e recebidas)
+    console.log('📨 Obtendo solicitações pendentes...');
+    const sentRequestsSnapshot = await db
+      .collection('friendRequests')
+      .where('fromUserId', '==', currentUserId)
+      .where('status', '==', 'pending')
+      .get();
+
+    const receivedRequestsSnapshot = await db
+      .collection('friendRequests')
+      .where('toUserId', '==', currentUserId)
+      .where('status', '==', 'pending')
+      .get();
+
+    const pendingUserIds = [];
+    
+    // Adicionar IDs das solicitações enviadas
+    sentRequestsSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      pendingUserIds.push(data.toUserId);
+    });
+    
+    // Adicionar IDs das solicitações recebidas
+    receivedRequestsSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      pendingUserIds.push(data.fromUserId);
+    });
+
+    console.log('📨 IDs com solicitações pendentes:', pendingUserIds);
+
+    // 🔥 COMBINAR LISTAS PARA EXCLUIR
+    const excludeIds = [...currentFriendIds, ...pendingUserIds, currentUserId];
+    console.log('🚫 IDs para excluir das sugestões:', excludeIds);
+
+    // Buscar usuários que NÃO estão na lista de exclusão
+    const usersSnapshot = await db
+      .collection('users')
+      .limit(50) // Buscar mais para ter opções após filtrar
+      .get();
+
+    const suggestions = [];
+    usersSnapshot.docs.forEach(doc => {
+      const userData = doc.data();
+      
+      // 🔥 FILTROS DE EXCLUSÃO
+      if (!excludeIds.includes(doc.id) && 
+          userData && 
+          (userData.displayName || userData.email) &&
+          userData.isPublic !== false) { // Só usuários públicos
+        
+        suggestions.push({
+          uid: doc.id,
+          id: doc.id,
+          ...userData,
+          mutualFriends: Math.floor(Math.random() * 3) // Simulado por enquanto
+        });
+      }
+    });
+
+    // Limitar a 10 sugestões e embaralhar
+    const shuffledSuggestions = suggestions
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 10);
+
+    console.log('✅ FriendsService - Sugestões filtradas:', shuffledSuggestions.length);
+    
+    return { success: true, suggestions: shuffledSuggestions };
+
+  } catch (error) {
+    console.error('❌ FriendsService - Erro ao buscar sugestões:', error);
+    return { success: false, error: error.message };
+  }
+},
+  
+// 🎬 BUSCAR FILMES DO AMIGO
 getFriendMovies: async (friendId) => {
   try {
     console.log('🎬 Buscando filmes do amigo:', friendId);
