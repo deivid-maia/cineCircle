@@ -11,36 +11,41 @@ import { Feather } from '@expo/vector-icons';
 import { DrawerContentScrollView } from '@react-navigation/drawer';
 import { useAuth } from '../contexts/AuthContext';
 import { useLogout } from '../contexts/useLogout';
+import { useMovies } from '../contexts/useMovies';
+import { useFriends } from '../contexts/FriendsContext';
 
-const CustomDrawerContent = ({ navigation, state }) => {
+const CustomDrawerContent = (props) => {
+    const { navigation, state } = props;
     const { user } = useAuth();
     const { handleLogout, loading } = useLogout();
+    const { stats } = useMovies();
+    const { friends, stats: friendsStats } = useFriends();
     
     // Função de navegação para as telas do Drawer
     const navigateToScreen = (screenName) => {
         navigation.navigate(screenName);
     };
 
-    // Avatar do usuário - só mostra se ele tiver foto
+    // Função para avatar
     const getAvatarUrl = () => {
-        if (user?.photoURL) return user.photoURL; // Foto do Firebase
-        return null; // Sem foto
+        if (user?.photoURL) return user.photoURL;
+        return null;
     };
 
     const hasAvatar = getAvatarUrl() !== null;
 
-    // Extrair primeiro nome do displayName ou email
+    // Função para nome do usuário
     const getUserName = () => {
         if (user?.displayName) {
-            return user.displayName.split(' ')[0]; // Primeiro nome
+            return user.displayName;
         }
         if (user?.email) {
-            return user.email.split('@')[0]; // Parte antes do @
+            return user.email.split('@')[0];
         }
         return 'Usuário';
     };
 
-    // Gerar username baseado no email
+    // Função para username
     const getUserUsername = () => {
         if (user?.email) {
             return `@${user.email.split('@')[0]}`;
@@ -48,8 +53,15 @@ const CustomDrawerContent = ({ navigation, state }) => {
         return '@usuario';
     };
 
+    // Função para gerar avatar padrão
+    const getDefaultAvatar = () => {
+        const name = getUserName();
+        return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=BD0DC0&color=fff&size=160`;
+    };
+
     return (
         <DrawerContentScrollView
+            {...props}
             style={styles.container}
             contentContainerStyle={styles.contentContainer}
         >
@@ -59,29 +71,38 @@ const CustomDrawerContent = ({ navigation, state }) => {
                     <Image 
                         source={{ uri: getAvatarUrl() }} 
                         style={styles.avatar} 
+                        onError={() => console.log('Erro ao carregar avatar do usuário')}
                     />
                 ) : (
-                    <View style={styles.avatarPlaceholder}>
-                        <Feather name="user" size={32} color="#9CA3AF" />
-                    </View>
+                    <Image 
+                        source={{ uri: getDefaultAvatar() }} 
+                        style={styles.avatar}
+                        onError={() => (
+                            <View style={styles.avatarPlaceholder}>
+                                <Feather name="user" size={32} color="#9CA3AF" />
+                            </View>
+                        )}
+                    />
                 )}
+                
                 <Text style={styles.userName}>{getUserName()}</Text>
                 <Text style={styles.userUsername}>{getUserUsername()}</Text>
                 
+                {/* Estatísticas reais */}
                 <View style={styles.statsContainer}>
                     <View style={styles.statItem}>
-                        <Text style={styles.statNumber}>93</Text>
+                        <Text style={styles.statNumber}>{stats?.total || 0}</Text>
                         <Text style={styles.statLabel}>Filmes</Text>
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
-                        <Text style={styles.statNumber}>42</Text>
+                        <Text style={styles.statNumber}>{friends?.length || 0}</Text>
                         <Text style={styles.statLabel}>Amigos</Text>
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
-                        <Text style={styles.statNumber}>18</Text>
-                        <Text style={styles.statLabel}>Recomend.</Text>
+                        <Text style={styles.statNumber}>{stats?.ratings || 0}</Text>
+                        <Text style={styles.statLabel}>Avaliações</Text>
                     </View>
                 </View>
             </View>
@@ -91,19 +112,19 @@ const CustomDrawerContent = ({ navigation, state }) => {
                 <TouchableOpacity 
                     style={[
                         styles.drawerItem, 
-                        state.index === 0 && styles.activeDrawerItem
+                        state?.index === 0 && styles.activeDrawerItem
                     ]} 
                     onPress={() => navigateToScreen('MainTabs')}
                 >
                     <Feather 
                         name="home" 
                         size={22} 
-                        color={state.index === 0 ? "#BD0DC0" : "#FFF"} 
+                        color={state?.index === 0 ? "#BD0DC0" : "#FFF"} 
                         style={styles.drawerIcon} 
                     />
                     <Text style={[
                         styles.drawerItemText,
-                        state.index === 0 && styles.activeDrawerItemText
+                        state?.index === 0 && styles.activeDrawerItemText
                     ]}>
                         Início
                     </Text>
@@ -117,19 +138,19 @@ const CustomDrawerContent = ({ navigation, state }) => {
                 <TouchableOpacity 
                     style={[
                         styles.drawerItem, 
-                        state.index === 1 && styles.activeDrawerItem
+                        state?.index === 1 && styles.activeDrawerItem
                     ]} 
                     onPress={() => navigateToScreen('Settings')}
                 >
                     <Feather 
                         name="settings" 
                         size={22} 
-                        color={state.index === 1 ? "#BD0DC0" : "#9CA3AF"} 
+                        color={state?.index === 1 ? "#BD0DC0" : "#9CA3AF"} 
                         style={styles.drawerIcon} 
                     />
                     <Text style={[
                         styles.drawerItemText,
-                        state.index === 1 && styles.activeDrawerItemText
+                        state?.index === 1 && styles.activeDrawerItemText
                     ]}>
                         Configurações
                     </Text>
@@ -138,19 +159,19 @@ const CustomDrawerContent = ({ navigation, state }) => {
                 <TouchableOpacity 
                     style={[
                         styles.drawerItem, 
-                        state.index === 2 && styles.activeDrawerItem
+                        state?.index === 2 && styles.activeDrawerItem
                     ]} 
                     onPress={() => navigateToScreen('Notifications')}
                 >
                     <Feather 
                         name="bell" 
                         size={22} 
-                        color={state.index === 2 ? "#BD0DC0" : "#9CA3AF"} 
+                        color={state?.index === 2 ? "#BD0DC0" : "#9CA3AF"} 
                         style={styles.drawerIcon} 
                     />
                     <Text style={[
                         styles.drawerItemText,
-                        state.index === 2 && styles.activeDrawerItemText
+                        state?.index === 2 && styles.activeDrawerItemText
                     ]}>
                         Notificações
                     </Text>
@@ -159,19 +180,19 @@ const CustomDrawerContent = ({ navigation, state }) => {
                 <TouchableOpacity 
                     style={[
                         styles.drawerItem, 
-                        state.index === 3 && styles.activeDrawerItem
+                        state?.index === 3 && styles.activeDrawerItem
                     ]} 
                     onPress={() => navigateToScreen('Help')}
                 >
                     <Feather 
                         name="help-circle" 
                         size={22} 
-                        color={state.index === 3 ? "#BD0DC0" : "#9CA3AF"} 
+                        color={state?.index === 3 ? "#BD0DC0" : "#9CA3AF"} 
                         style={styles.drawerIcon} 
                     />
                     <Text style={[
                         styles.drawerItemText,
-                        state.index === 3 && styles.activeDrawerItemText
+                        state?.index === 3 && styles.activeDrawerItemText
                     ]}>
                         Ajuda
                     </Text>
@@ -202,7 +223,6 @@ const CustomDrawerContent = ({ navigation, state }) => {
                     </Text>
                 </TouchableOpacity>
                 
-                {/* Informação do usuário logado - para debug */}
                 {user?.email && (
                     <Text style={styles.userEmail} numberOfLines={1}>
                         {user.email}
@@ -253,6 +273,7 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 18,
         fontWeight: 'bold',
+        textAlign: 'center',
     },
     userUsername: {
         color: '#9CA3AF',
@@ -293,7 +314,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     activeDrawerItem: {
-        backgroundColor: 'rgba(189, 13, 192, 0.1)', // Cor de fundo para item ativo
+        backgroundColor: 'rgba(189, 13, 192, 0.1)',
     },
     drawerIcon: {
         marginRight: 15,
@@ -341,5 +362,6 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
     },
 });
+
 
 export default CustomDrawerContent;

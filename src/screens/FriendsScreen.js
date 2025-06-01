@@ -180,49 +180,73 @@ const FriendsScreen = ({ navigation }) => {
   // Função para gerar avatar padrão
   const getDefaultAvatar = (name, email) => {
     const displayName = name || (email ? email.split('@')[0] : 'Usuario');
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=BD0DC0&color=fff`;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=BD0DC0&color=fff&size=100`;
+  };
+
+  const getUserDisplayData = (userData) => {
+    // Priorizar displayName do Firestore, depois do Auth, depois email
+    const displayName = userData?.displayName ||
+      (userData?.email ? userData.email.split('@')[0] : 'Usuário');
+
+    // Para foto, verificar tanto photoURL quanto possível URL de avatar gerada
+    const photoURL = userData?.photoURL || null;
+
+    return {
+      displayName,
+      photoURL,
+      username: userData?.email ? `@${userData.email.split('@')[0]}` : '@usuario'
+    };
   };
 
   // Renderizar item de usuário sugerido
-  const renderSuggestedItem = ({ item }) => (
-    <View style={styles.friendCard}>
-      <View style={styles.friendCardHeader}>
-        <View style={styles.friendInfo}>
-          <Image
-            source={{
-              uri: item.photoURL || getDefaultAvatar(item.displayName, item.email)
-            }}
-            style={styles.avatar}
-          />
-          <View style={styles.friendDetails}>
-            <Text style={styles.friendName}>
-              {item.displayName || (item.email ? item.email.split('@')[0] : 'Usuário')}
-            </Text>
-            <Text style={styles.friendUsername}>
-              @{item.email ? item.email.split('@')[0] : 'usuario'}
-            </Text>
-            <View style={styles.friendStats}>
-              <View style={styles.statItem}>
-                <Feather name="users" size={12} color="#9CA3AF" />
-                <Text style={styles.statText}>{item.mutualFriends || 0} amigos</Text>
+  const renderSuggestedItem = ({ item }) => {
+    // Usar função auxiliar para obter dados consistentes
+    const { displayName, photoURL, username } = getUserDisplayData(item);
+
+    return (
+      <View style={styles.friendCard}>
+        <View style={styles.friendCardHeader}>
+          <View style={styles.friendInfo}>
+            <Image
+              source={{
+                uri: photoURL || getDefaultAvatar(displayName, item.email)
+              }}
+              style={styles.avatar}
+              // Adicionar fallback em caso de erro
+              onError={() => {
+                console.log('Erro ao carregar imagem do usuário:', item.uid);
+              }}
+            />
+            <View style={styles.friendDetails}>
+              <Text style={styles.friendName}>
+                {displayName}
+              </Text>
+              <Text style={styles.friendUsername}>
+                {username}
+              </Text>
+              <View style={styles.friendStats}>
+                <View style={styles.statItem}>
+                  <Feather name="users" size={12} color="#9CA3AF" />
+                  <Text style={styles.statText}>{item.mutualFriends || 0} amigos</Text>
+                </View>
               </View>
             </View>
           </View>
+
+          <TouchableOpacity
+            style={styles.connectButton}
+            onPress={() => handleSendRequest(item.uid, displayName)}
+            disabled={loading}
+          >
+            <Feather name="user-plus" size={16} color="white" style={styles.connectIcon} />
+            <Text style={styles.connectText}>Conectar</Text>
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          style={styles.connectButton}
-          onPress={() => handleSendRequest(item.uid, item.displayName || item.email || 'Usuário')}
-          disabled={loading}
-        >
-          <Feather name="user-plus" size={16} color="white" style={styles.connectIcon} />
-          <Text style={styles.connectText}>Conectar</Text>
-        </TouchableOpacity>
       </View>
-    </View>
-  );
+    );
+  };
 
-  // Renderizar item de amigo
+
   // Renderizar item de amigo
   const renderFriendItem = ({ item }) => (
     <View style={styles.friendCard}>
@@ -291,46 +315,6 @@ const FriendsScreen = ({ navigation }) => {
       ]
     );
   };
-  // const renderFriendItem = ({ item }) => (
-  //   <View style={styles.friendCard}>
-  //     <View style={styles.friendCardHeader}>
-  //       <View style={styles.friendInfo}>
-  //         <Image
-  //           source={{
-  //             uri: item.photoURL || getDefaultAvatar(item.displayName, item.email)
-  //           }}
-  //           style={[styles.avatar, styles.avatarWithBorder]}
-  //         />
-  //         <View style={styles.friendDetails}>
-  //           <Text style={styles.friendName}>
-  //             {item.displayName || (item.email ? item.email.split('@')[0] : 'Usuário')}
-  //           </Text>
-  //           <Text style={styles.friendUsername}>
-  //             @{item.email ? item.email.split('@')[0] : 'usuario'}
-  //           </Text>
-  //           {item.friendsSince && (
-  //             <Text style={styles.friendsSince}>
-  //               Amigos desde {formatDateSafely(item.friendsSince)}
-  //             </Text>
-  //           )}
-  //         </View>
-  //         <TouchableOpacity
-  //           style={styles.friendCard}
-  //           onPress={() => navigation.navigate('FriendProfile', {
-  //             friend: item,
-  //             friendId: item.uid
-  //           })}
-  //         ></TouchableOpacity>
-  //       </View>
-
-  //       <TouchableOpacity
-  //         onPress={() => handleRemoveFriend(item.uid, item.displayName || item.email || 'Usuário')}
-  //       >
-  //         <Feather name="more-vertical" size={20} color="#9CA3AF" />
-  //       </TouchableOpacity>
-  //     </View>
-  //   </View>
-  // );
 
   // 🔥 RENDERIZAR SOLICITAÇÃO COM FORMATAÇÃO SEGURA DE DATA
   const renderRequestItem = ({ item }) => (
@@ -374,40 +358,48 @@ const FriendsScreen = ({ navigation }) => {
   );
 
   // Renderizar resultados de busca
-  const renderSearchItem = ({ item }) => (
-    <View style={styles.friendCard}>
-      <View style={styles.friendCardHeader}>
-        <View style={styles.friendInfo}>
-          <Image
-            source={{
-              uri: item.photoURL || getDefaultAvatar(item.displayName, item.email)
-            }}
-            style={styles.avatar}
-          />
-          <View style={styles.friendDetails}>
-            <Text style={styles.friendName}>
-              {item.displayName || (item.email ? item.email.split('@')[0] : 'Usuário')}
-            </Text>
-            <Text style={styles.friendUsername}>
-              @{item.email ? item.email.split('@')[0] : 'usuario'}
-            </Text>
-            {item.bio && (
-              <Text style={styles.userBio} numberOfLines={1}>{item.bio}</Text>
-            )}
-          </View>
-        </View>
+  const renderSearchItem = ({ item }) => {
+    const { displayName, photoURL, username } = getUserDisplayData(item);
 
-        <TouchableOpacity
-          style={styles.connectButton}
-          onPress={() => handleSendRequest(item.uid, item.displayName || item.email || 'Usuário')}
-          disabled={loading}
-        >
-          <Feather name="user-plus" size={16} color="white" style={styles.connectIcon} />
-          <Text style={styles.connectText}>Conectar</Text>
-        </TouchableOpacity>
+    return (
+      <View style={styles.friendCard}>
+        <View style={styles.friendCardHeader}>
+          <View style={styles.friendInfo}>
+            <Image
+              source={{
+                uri: photoURL || getDefaultAvatar(displayName, item.email)
+              }}
+              style={styles.avatar}
+              onError={() => {
+                console.log('Erro ao carregar imagem na busca:', item.uid);
+              }}
+            />
+            <View style={styles.friendDetails}>
+              <Text style={styles.friendName}>
+                {displayName}
+              </Text>
+              <Text style={styles.friendUsername}>
+                {username}
+              </Text>
+              {item.bio && (
+                <Text style={styles.userBio} numberOfLines={1}>{item.bio}</Text>
+              )}
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.connectButton}
+            onPress={() => handleSendRequest(item.uid, displayName)}
+            disabled={loading}
+          >
+            <Feather name="user-plus" size={16} color="white" style={styles.connectIcon} />
+            <Text style={styles.connectText}>Conectar</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
+
 
   // Obter dados da aba atual
   const getCurrentTabData = () => {

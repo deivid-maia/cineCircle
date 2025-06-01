@@ -24,17 +24,17 @@ export const AuthProvider = ({ children }) => {
   // Monitorar mudanças no estado de autenticação
   useEffect(() => {
     console.log('AuthContext - Configurando listener de auth');
-    
+
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       console.log('AuthContext - Auth state changed:', user ? `Logged in: ${user.email}` : 'Logged out');
-      
+
       if (user) {
         // 🔥 CRIAR PERFIL AUTOMATICAMENTE
         await createUserProfile(user);
       }
-      
+
       setUser(user);
-      
+
       if (initializing) {
         setInitializing(false);
         console.log('AuthContext - Inicialização completa');
@@ -50,31 +50,41 @@ export const AuthProvider = ({ children }) => {
 
   // 🚀 FUNÇÃO PARA CRIAR PERFIL PÚBLICO
   const createUserProfile = async (user) => {
-  try {
-    if (!user) return;
+    try {
+      if (!user) return;
 
-    console.log('AuthContext - Criando perfil público para:', user.uid);
+      console.log('AuthContext - Criando/atualizando perfil público para:', user.uid);
 
-    const userDoc = await db.collection('users').doc(user.uid).get();
-    
-    if (!userDoc.exists) {
-      // 🔥 ESTRUTURA CORRETA E COMPLETA
-      await db.collection('users').doc(user.uid).set({
-        displayName: user.displayName || 'Usuário',
-        email: user.email, // 🎯 GARANTIR QUE EMAIL SEMPRE EXISTE
-        photoURL: user.photoURL || null,
-        bio: '',
-        isPublic: true,
-        createdAt: new Date(),
-        lastSeen: new Date()
-      });
+      const userDoc = await db.collection('users').doc(user.uid).get();
 
-      console.log('AuthContext - Perfil público criado');
+      if (!userDoc.exists) {
+        // Criar perfil inicial
+        await db.collection('users').doc(user.uid).set({
+          displayName: user.displayName || 'Usuário',
+          email: user.email,
+          photoURL: user.photoURL || null,
+          bio: '',
+          isPublic: true,
+          createdAt: new Date(),
+          lastSeen: new Date()
+        });
+        console.log('AuthContext - Perfil público criado');
+      } else {
+        // Atualizar dados básicos se necessário (manter bio existente)
+        const existingData = userDoc.data();
+        await db.collection('users').doc(user.uid).update({
+          displayName: user.displayName || existingData.displayName || 'Usuário',
+          email: user.email,
+          photoURL: user.photoURL || existingData.photoURL || null,
+          lastSeen: new Date()
+        });
+        console.log('AuthContext - Perfil público atualizado');
+      }
+    } catch (error) {
+      console.error('AuthContext - Erro ao criar/atualizar perfil:', error);
     }
-  } catch (error) {
-    console.error('AuthContext - Erro ao criar perfil:', error);
-  }
-};
+  };
+
 
   // Função de login
   const login = async (email, password) => {
@@ -98,12 +108,12 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('AuthContext - Iniciando registro');
       const result = await authService.register(email, password, displayName);
-      
+
       if (result.success) {
         // Criar perfil do usuário no Firestore após registro bem-sucedido
         await createUserProfile(result.user);
       }
-      
+
       console.log('AuthContext - Resultado do registro:', result.success);
       return result;
     } catch (error) {
@@ -158,12 +168,22 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   };
-
-  // Funções de edição de perfil
   const updateDisplayName = async (displayName) => {
     try {
+      console.log('AuthContext - Atualizando nome para:', displayName);
+
       const result = await authService.updateDisplayName(displayName);
       if (result.success) {
+        // SINCRONIZAR COM FIRESTORE
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          await db.collection('users').doc(currentUser.uid).update({
+            displayName: displayName.trim(),
+            updatedAt: new Date()
+          });
+          console.log('AuthContext - Nome sincronizado no Firestore');
+        }
+
         // Atualizar contexto local
         await refreshUser();
       }
@@ -172,26 +192,36 @@ export const AuthProvider = ({ children }) => {
       console.error('AuthContext - Erro ao atualizar nome:', error);
       return { success: false, error: error.message };
     }
-  };
+  }
 
   const uploadProfilePhoto = async (imageUri) => {
     try {
       console.log('AuthContext - Iniciando upload de foto');
       const result = await authService.uploadProfilePhoto(imageUri);
-      
+
       if (result.success) {
-        console.log('AuthContext - Upload bem-sucedido, fazendo refresh...');
-        
-        // Fazer refresh múltiplo para garantir atualização
+        console.log('AuthContext - Upload bem-sucedido, sincronizando com Firestore...');
+
+        // SINCRONIZAR COM FIRESTORE
+        const currentUser = auth.currentUser;
+        if (currentUser && result.photoURL) {
+          await db.collection('users').doc(currentUser.uid).update({
+            photoURL: result.photoURL,
+            updatedAt: new Date()
+          });
+          console.log('AuthContext - Foto sincronizada no Firestore');
+        }
+
+        // Fazer refresh do usuário
         await refreshUser();
-        
+
         // Aguardar um pouco e fazer outro refresh
         setTimeout(async () => {
           await refreshUser();
           console.log('AuthContext - Refresh adicional concluído');
         }, 1000);
       }
-      
+
       return result;
     } catch (error) {
       console.error('AuthContext - Erro no upload da foto:', error);
@@ -203,6 +233,16 @@ export const AuthProvider = ({ children }) => {
     try {
       const result = await authService.removeProfilePhoto();
       if (result.success) {
+        // SINCRONIZAR COM FIRESTORE
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          await db.collection('users').doc(currentUser.uid).update({
+            photoURL: null,
+            updatedAt: new Date()
+          });
+          console.log('AuthContext - Remoção sincronizada no Firestore');
+        }
+
         // Atualizar contexto local
         await refreshUser();
       }
@@ -212,6 +252,21 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: error.message };
     }
   };
+
+
+  // const removeProfilePhoto = async () => {
+  //   try {
+  //     const result = await authService.removeProfilePhoto();
+  //     if (result.success) {
+  //       // Atualizar contexto local
+  //       await refreshUser();
+  //     }
+  //     return result;
+  //   } catch (error) {
+  //     console.error('AuthContext - Erro ao remover foto:', error);
+  //     return { success: false, error: error.message };
+  //   }
+  // };
 
   const updateEmail = async (currentPassword, newEmail) => {
     try {
@@ -259,17 +314,17 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('AuthContext - Fazendo refresh do usuário');
       const currentUser = auth.currentUser;
-      
+
       if (currentUser) {
         // Recarregar dados do Firebase
         await currentUser.reload();
-        
+
         // Forçar atualização do token
         await currentUser.getIdToken(true);
-        
+
         // Atualizar estado local (força re-render)
         setUser({ ...auth.currentUser });
-        
+
         console.log('AuthContext - Refresh concluído');
         return { success: true };
       } else {
@@ -278,6 +333,49 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('AuthContext - Erro no refresh:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const syncUserProfile = async () => {
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return { success: false, error: 'Usuário não encontrado' };
+
+      // Buscar dados atuais do Firestore
+      const userDoc = await db.collection('users').doc(currentUser.uid).get();
+
+      if (userDoc.exists) {
+        const firestoreData = userDoc.data();
+
+        // Verificar se há diferenças entre Auth e Firestore
+        const authData = {
+          displayName: currentUser.displayName,
+          email: currentUser.email,
+          photoURL: currentUser.photoURL
+        };
+
+        const needsUpdate =
+          authData.displayName !== firestoreData.displayName ||
+          authData.photoURL !== firestoreData.photoURL;
+
+        if (needsUpdate) {
+          console.log('AuthContext - Sincronizando diferenças entre Auth e Firestore');
+          await db.collection('users').doc(currentUser.uid).update({
+            displayName: authData.displayName || firestoreData.displayName,
+            photoURL: authData.photoURL || firestoreData.photoURL,
+            email: authData.email,
+            lastSeen: new Date()
+          });
+        }
+      } else {
+        // Se não existe, criar
+        await createUserProfile(currentUser);
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('AuthContext - Erro na sincronização:', error);
       return { success: false, error: error.message };
     }
   };

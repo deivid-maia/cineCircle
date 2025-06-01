@@ -138,77 +138,8 @@ const friendsService = {
       return { success: false, error: error.message };
     }
   },
-  // acceptFriendRequest: async (requestId) => {
-  //   try {
-  //     const currentUserId = auth.currentUser?.uid;
-  //     if (!currentUserId) {
-  //       return { success: false, error: 'Usuário não autenticado' };
-  //     }
-
-  //     console.log('FriendsService - Aceitando solicitação:', requestId);
-
-  //     // Buscar dados da solicitação
-  //     const requestDoc = await db.collection('friendRequests').doc(requestId).get();
-  //     if (!requestDoc.exists) {
-  //       return { success: false, error: 'Solicitação não encontrada' };
-  //     }
-
-  //     const requestData = requestDoc.data();
-  //     const { fromUserId, toUserId } = requestData;
-
-  //     // Verificar se o usuário atual pode aceitar
-  //     if (toUserId !== currentUserId) {
-  //       return { success: false, error: 'Você não pode aceitar esta solicitação' };
-  //     }
-
-  //     // 🔥 USAR BATCH PARA OPERAÇÕES ATÔMICAS
-  //     const batch = db.batch();
-
-  //     // 1. Atualizar status da solicitação
-  //     const requestRef = db.collection('friendRequests').doc(requestId);
-  //     batch.update(requestRef, {
-  //       status: 'accepted',
-  //       updatedAt: new Date()
-  //     });
-
-  //     // 2. Criar amizade (cria a coleção automaticamente)
-  //     const friendshipRef = db.collection('friendships').doc();
-  //     batch.set(friendshipRef, {
-  //       user1Id: fromUserId,
-  //       user2Id: toUserId,
-  //       status: 'active',
-  //       createdAt: new Date()
-  //     });
-
-  //     // 3. Atualizar lista de amigos do usuário 1
-  //     const user1FriendsRef = db.collection('userFriends').doc(fromUserId);
-  //     batch.set(user1FriendsRef, {
-  //       friendIds: db.FieldValue.arrayUnion(toUserId),
-  //       friendCount: db.FieldValue.increment(1),
-  //       lastUpdated: new Date()
-  //     }, { merge: true });
-
-  //     // 4. Atualizar lista de amigos do usuário 2
-  //     const user2FriendsRef = db.collection('userFriends').doc(toUserId);
-  //     batch.set(user2FriendsRef, {
-  //       friendIds: db.FieldValue.arrayUnion(fromUserId),
-  //       friendCount: db.FieldValue.increment(1),
-  //       lastUpdated: new Date()
-  //     }, { merge: true });
-
-  //     // Executar todas as operações
-  //     await batch.commit();
-
-  //     console.log('FriendsService - Solicitação aceita com sucesso');
-  //     return { success: true };
-
-  //   } catch (error) {
-  //     console.error('FriendsService - Erro ao aceitar solicitação:', error);
-  //     return { success: false, error: error.message };
-  //   }
-  // },
-
-  // ✅ REJEITAR SOLICITAÇÃO
+  
+  //REJEITAR SOLICITAÇÃO
   rejectFriendRequest: async (requestId) => {
     try {
       const currentUserId = auth.currentUser?.uid;
@@ -562,110 +493,155 @@ getUserFriends: async (userId = null) => {
   
   // 🎯 OBTER SUGESTÕES DE AMIGOS (funcionalidade básica)
   // 🎯 OBTER SUGESTÕES DE AMIGOS (corrigida - sem this)
-getSuggestedFriends: async () => {
-  try {
-    console.log('FriendsService - Buscando sugestões');
+  getSuggestedFriends: async () => {
+    try {
+      console.log('🔍 FriendsService - Buscando sugestões [DEBUG DETALHADO]');
 
-    const currentUserId = auth.currentUser?.uid;
-    if (!currentUserId) {
-      return { success: false, error: 'Usuário não autenticado' };
-    }
-
-    // 🔥 OBTER AMIGOS ATUAIS DIRETO DO FIRESTORE
-    console.log('👥 Buscando amigos atuais...');
-    const friendshipsSnapshot = await db
-      .collection('friendships')
-      .where('status', '==', 'active')
-      .get();
-
-    const currentFriendIds = [];
-    friendshipsSnapshot.docs.forEach(doc => {
-      const data = doc.data();
-      // Se o usuário é user1Id, adicionar user2Id como amigo
-      if (data.user1Id === currentUserId) {
-        currentFriendIds.push(data.user2Id);
+      const currentUserId = auth.currentUser?.uid;
+      if (!currentUserId) {
+        return { success: false, error: 'Usuário não autenticado' };
       }
-      // Se o usuário é user2Id, adicionar user1Id como amigo  
-      else if (data.user2Id === currentUserId) {
-        currentFriendIds.push(data.user1Id);
-      }
-    });
-    
-    console.log('👥 IDs dos amigos atuais:', currentFriendIds);
 
-    // 🔥 OBTER SOLICITAÇÕES PENDENTES (enviadas e recebidas)
-    console.log('📨 Obtendo solicitações pendentes...');
-    const sentRequestsSnapshot = await db
-      .collection('friendRequests')
-      .where('fromUserId', '==', currentUserId)
-      .where('status', '==', 'pending')
-      .get();
+      console.log('👤 Usuário atual:', currentUserId);
 
-    const receivedRequestsSnapshot = await db
-      .collection('friendRequests')
-      .where('toUserId', '==', currentUserId)
-      .where('status', '==', 'pending')
-      .get();
+      // 1. OBTER AMIGOS ATUAIS
+      console.log('👥 Buscando amigos atuais...');
+      const friendshipsSnapshot = await db
+        .collection('friendships')
+        .where('status', '==', 'active')
+        .get();
 
-    const pendingUserIds = [];
-    
-    // Adicionar IDs das solicitações enviadas
-    sentRequestsSnapshot.docs.forEach(doc => {
-      const data = doc.data();
-      pendingUserIds.push(data.toUserId);
-    });
-    
-    // Adicionar IDs das solicitações recebidas
-    receivedRequestsSnapshot.docs.forEach(doc => {
-      const data = doc.data();
-      pendingUserIds.push(data.fromUserId);
-    });
-
-    console.log('📨 IDs com solicitações pendentes:', pendingUserIds);
-
-    // 🔥 COMBINAR LISTAS PARA EXCLUIR
-    const excludeIds = [...currentFriendIds, ...pendingUserIds, currentUserId];
-    console.log('🚫 IDs para excluir das sugestões:', excludeIds);
-
-    // Buscar usuários que NÃO estão na lista de exclusão
-    const usersSnapshot = await db
-      .collection('users')
-      .limit(50) // Buscar mais para ter opções após filtrar
-      .get();
-
-    const suggestions = [];
-    usersSnapshot.docs.forEach(doc => {
-      const userData = doc.data();
+      const currentFriendIds = [];
+      friendshipsSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.user1Id === currentUserId) {
+          currentFriendIds.push(data.user2Id);
+        } else if (data.user2Id === currentUserId) {
+          currentFriendIds.push(data.user1Id);
+        }
+      });
       
-      // 🔥 FILTROS DE EXCLUSÃO
-      if (!excludeIds.includes(doc.id) && 
-          userData && 
-          (userData.displayName || userData.email) &&
-          userData.isPublic !== false) { // Só usuários públicos
+      console.log('👥 IDs dos amigos atuais:', currentFriendIds);
+
+      // 2. OBTER SOLICITAÇÕES PENDENTES
+      console.log('📨 Obtendo solicitações pendentes...');
+      const [sentRequestsSnapshot, receivedRequestsSnapshot] = await Promise.all([
+        db.collection('friendRequests')
+          .where('fromUserId', '==', currentUserId)
+          .where('status', '==', 'pending')
+          .get(),
+        db.collection('friendRequests')
+          .where('toUserId', '==', currentUserId)
+          .where('status', '==', 'pending')
+          .get()
+      ]);
+
+      const pendingUserIds = [];
+      
+      sentRequestsSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        pendingUserIds.push(data.toUserId);
+      });
+      
+      receivedRequestsSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        pendingUserIds.push(data.fromUserId);
+      });
+
+      console.log('📨 IDs com solicitações pendentes:', pendingUserIds);
+
+      // 3. COMBINAR LISTAS PARA EXCLUIR
+      const excludeIds = [...currentFriendIds, ...pendingUserIds, currentUserId];
+      console.log('🚫 IDs para excluir das sugestões:', excludeIds);
+
+      // 4. BUSCAR USUÁRIOS COM DEBUG DETALHADO
+      console.log('🔍 Buscando todos os usuários...');
+      const usersSnapshot = await db
+        .collection('users')
+        .where('isPublic', '==', true) // Só usuários públicos
+        .limit(50)
+        .get();
+
+      console.log('📊 Total de usuários encontrados:', usersSnapshot.size);
+
+      const suggestions = [];
+      usersSnapshot.docs.forEach(doc => {
+        const userData = doc.data();
+        
+        console.log(`📄 Processando usuário ${doc.id}:`, {
+          displayName: userData.displayName,
+          email: userData.email,
+          photoURL: userData.photoURL,
+          isPublic: userData.isPublic,
+          shouldExclude: excludeIds.includes(doc.id)
+        });
+        
+        // VERIFICAÇÕES DETALHADAS
+        if (excludeIds.includes(doc.id)) {
+          console.log(`❌ Usuário ${doc.id} excluído (amigo/pending/self)`);
+          return;
+        }
+        
+        if (!userData) {
+          console.log(`❌ Usuário ${doc.id} sem dados`);
+          return;
+        }
+        
+        if (!userData.displayName && !userData.email) {
+          console.log(`❌ Usuário ${doc.id} sem nome nem email`);
+          return;
+        }
+        
+        if (userData.isPublic === false) {
+          console.log(`❌ Usuário ${doc.id} não é público`);
+          return;
+        }
+        
+        console.log(`✅ Usuário ${doc.id} ADICIONADO às sugestões`);
         
         suggestions.push({
           uid: doc.id,
           id: doc.id,
-          ...userData,
-          mutualFriends: Math.floor(Math.random() * 3) // Simulado por enquanto
+          displayName: userData.displayName || 'Usuário',
+          email: userData.email,
+          photoURL: userData.photoURL || null,
+          bio: userData.bio || '',
+          isPublic: userData.isPublic,
+          mutualFriends: Math.floor(Math.random() * 3), // Simulado
+          // DADOS DE DEBUG
+          _debug: {
+            originalDisplayName: userData.displayName,
+            hasPhotoURL: !!userData.photoURL,
+            rawData: userData
+          }
         });
-      }
-    });
+      });
 
-    // Limitar a 10 sugestões e embaralhar
-    const shuffledSuggestions = suggestions
-      .sort(() => 0.5 - Math.random())
-      .slice(0, 10);
+      console.log('📊 Sugestões antes do embaralhamento:', suggestions.length);
+      suggestions.forEach(suggestion => {
+        console.log(`📝 Sugestão: ${suggestion.displayName} (${suggestion.email}) - Foto: ${!!suggestion.photoURL}`);
+      });
 
-    console.log('✅ FriendsService - Sugestões filtradas:', shuffledSuggestions.length);
-    
-    return { success: true, suggestions: shuffledSuggestions };
+      // 5. EMBARALHAR E LIMITAR
+      const shuffledSuggestions = suggestions
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 10);
 
-  } catch (error) {
-    console.error('❌ FriendsService - Erro ao buscar sugestões:', error);
-    return { success: false, error: error.message };
-  }
-},
+      console.log('✅ FriendsService - Sugestões finais:', shuffledSuggestions.length);
+      console.log('📋 Lista final de sugestões:');
+      shuffledSuggestions.forEach((suggestion, index) => {
+        console.log(`${index + 1}. ${suggestion.displayName} - Email: ${suggestion.email} - Foto: ${suggestion.photoURL || 'NENHUMA'}`);
+      });
+      
+      return { success: true, suggestions: shuffledSuggestions };
+
+    } catch (error) {
+      console.error('❌ FriendsService - Erro ao buscar sugestões:', error);
+      console.error('❌ Stack trace:', error.stack);
+      return { success: false, error: error.message };
+    }
+  },
+
   
 // 🎬 BUSCAR FILMES DO AMIGO
 getFriendMovies: async (friendId) => {
