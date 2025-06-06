@@ -13,7 +13,10 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useMovies } from '../contexts/useMovies';
 
-const MovieActions = ({ movie, style = {}, showLabels = true, size = 'medium' }) => {
+const MovieActions = ({ movie, style = {}, showLabels = true, size = 'medium', onRecommend }) => {
+
+  console.log('MovieActions renderizando');
+
   const {
     addMovieToList,
     removeMovieFromList,
@@ -24,7 +27,8 @@ const MovieActions = ({ movie, style = {}, showLabels = true, size = 'medium' })
   const [movieStatus, setMovieStatus] = useState({
     watched: false,
     favorites: false,
-    watchlist: false
+    watchlist: false,
+    recommendations: false // Adicionado
   });
   
   const [modalVisible, setModalVisible] = useState(false);
@@ -48,7 +52,8 @@ const MovieActions = ({ movie, style = {}, showLabels = true, size = 'medium' })
         setMovieStatus({
           watched: watchedResult.success && watchedResult.exists,
           favorites: favoritesResult.success && favoritesResult.exists,
-          watchlist: watchlistResult.success && watchlistResult.exists
+          watchlist: watchlistResult.success && watchlistResult.exists,
+          recommendations: false // Por enquanto sempre false, pode ser implementado depois
         });
 
         // Se já assistiu, carregar rating e review existentes
@@ -140,6 +145,15 @@ const MovieActions = ({ movie, style = {}, showLabels = true, size = 'medium' })
     }
   };
 
+  // Função para recomendar filme
+  const handleRecommendToggle = () => {
+    if (onRecommend) {
+      onRecommend(movie);
+    } else {
+      Alert.alert('Recomendar', 'Funcionalidade de recomendação em desenvolvimento');
+    }
+  };
+
   // Salvar avaliação
   const handleSaveReview = async () => {
     if (rating === 0) {
@@ -189,89 +203,120 @@ const MovieActions = ({ movie, style = {}, showLabels = true, size = 'medium' })
 
   return (
     <View style={[styles.container, style]}>
-      {/* Botão Watchlist */}
-      <TouchableOpacity
-        style={[
-          styles.actionButton,
-          { padding: currentSize.padding },
-          movieStatus.watchlist && styles.activeButton
-        ]}
-        onPress={handleWatchlistToggle}
-        disabled={loading || updating}
-      >
-        {updating ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
-        ) : (
-          <>
-            <Feather
-              name="bookmark"
-              size={currentSize.icon}
-              color={movieStatus.watchlist ? "#BD0DC0" : "#FFFFFF"}
-            />
-            {showLabels && (
-              <Text style={[
-                styles.buttonText,
-                { fontSize: currentSize.fontSize },
-                movieStatus.watchlist && styles.activeButtonText
-              ]}>
-                {movieStatus.watchlist ? 'Na Lista' : 'Quero Ver'}
-              </Text>
-            )}
-          </>
-        )}
-      </TouchableOpacity>
+      {/* Primeira linha - 3 botões principais */}
+      <View style={styles.actionRow}>
+        {/* Botão Watchlist */}
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            { padding: currentSize.padding },
+            movieStatus.watchlist && styles.activeButton
+          ]}
+          onPress={handleWatchlistToggle}
+          disabled={loading || updating}
+        >
+          {updating ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <>
+              <Feather
+                name="bookmark"
+                size={currentSize.icon}
+                color={movieStatus.watchlist ? "#BD0DC0" : "#FFFFFF"}
+              />
+              {showLabels && (
+                <Text style={[
+                  styles.buttonText,
+                  { fontSize: currentSize.fontSize },
+                  movieStatus.watchlist && styles.activeButtonText
+                ]}>
+                  {movieStatus.watchlist ? 'Na Lista' : 'Quero Ver'}
+                </Text>
+              )}
+            </>
+          )}
+        </TouchableOpacity>
 
-      {/* Botão Assistido */}
-      <TouchableOpacity
-        style={[
-          styles.actionButton,
-          { padding: currentSize.padding },
-          movieStatus.watched && styles.activeButton
-        ]}
-        onPress={handleWatchedToggle}
-        disabled={loading || updating}
-      >
-        <Feather
-          name="check-circle"
-          size={currentSize.icon}
-          color={movieStatus.watched ? "#BD0DC0" : "#FFFFFF"}
-        />
-        {showLabels && (
-          <Text style={[
-            styles.buttonText,
-            { fontSize: currentSize.fontSize },
-            movieStatus.watched && styles.activeButtonText
-          ]}>
-            {movieStatus.watched ? 'Assistido' : 'Marcar'}
-          </Text>
-        )}
-      </TouchableOpacity>
+        {/* Botão Assistido */}
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            { padding: currentSize.padding },
+            movieStatus.watched && styles.activeButton
+          ]}
+          onPress={handleWatchedToggle}
+          disabled={loading || updating}
+        >
+          <Feather
+            name="check-circle"
+            size={currentSize.icon}
+            color={movieStatus.watched ? "#BD0DC0" : "#FFFFFF"}
+          />
+          {showLabels && (
+            <Text style={[
+              styles.buttonText,
+              { fontSize: currentSize.fontSize },
+              movieStatus.watched && styles.activeButtonText
+            ]}>
+              {movieStatus.watched ? 'Assistido' : 'Marcar'}
+            </Text>
+          )}
+        </TouchableOpacity>
 
-      {/* Botão Favoritos */}
-      <TouchableOpacity
-        style={[
-          styles.actionButton,
-          { padding: currentSize.padding },
-          movieStatus.favorites && styles.activeButton
-        ]}
-        onPress={handleFavoritesToggle}
-        disabled={loading || updating}
-      >
-        <Feather
-          name="heart"
-          size={currentSize.icon}
-          color={movieStatus.favorites ? "#BD0DC0" : "#FFFFFF"}
-        />
-        {showLabels && (
-          <Text style={[
-            styles.buttonText,
-            { fontSize: currentSize.fontSize },
-            movieStatus.favorites && styles.activeButtonText
-          ]}>
-            {movieStatus.favorites ? 'Favorito' : 'Favoritar'}
-          </Text>
-        )}
-      </TouchableOpacity>
+        {/* Botão Favoritos */}
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            { padding: currentSize.padding },
+            movieStatus.favorites && styles.activeButton
+          ]}
+          onPress={handleFavoritesToggle}
+          disabled={loading || updating}
+        >
+          <Feather
+            name="heart"
+            size={currentSize.icon}
+            color={movieStatus.favorites ? "#BD0DC0" : "#FFFFFF"}
+          />
+          {showLabels && (
+            <Text style={[
+              styles.buttonText,
+              { fontSize: currentSize.fontSize },
+              movieStatus.favorites && styles.activeButtonText
+            ]}>
+              {movieStatus.favorites ? 'Favorito' : 'Favoritar'}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Segunda linha - Botão Recomendar (largura total) */}
+      <View style={styles.recommendRow}>
+        <TouchableOpacity
+          style={[
+            styles.recommendButton,
+            { padding: currentSize.padding },
+            movieStatus.recommendations && styles.activeRecommendButton
+          ]}
+          onPress={handleRecommendToggle}
+          disabled={loading || updating}
+        >
+          <Feather
+            name="send"
+            size={currentSize.icon}
+            color={movieStatus.recommendations ? "#007AFF" : "#FFFFFF"}
+          />
+          {showLabels && (
+            <Text style={[
+              styles.recommendButtonText,
+              { fontSize: currentSize.fontSize },
+              movieStatus.recommendations && styles.activeRecommendButtonText
+            ]}>
+              {movieStatus.recommendations ? 'Filme Recomendado' : 'Recomendar para Amigos'}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
 
       {/* Modal para Avaliação/Review */}
       <Modal
@@ -362,9 +407,18 @@ const MovieActions = ({ movie, style = {}, showLabels = true, size = 'medium' })
 
 const styles = StyleSheet.create({
   container: {
+    flexDirection: 'column',
+    gap: 12,
+  },
+  actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
+  },
+  recommendRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   actionButton: {
     flexDirection: 'row',
@@ -372,21 +426,49 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#27272A',
     borderRadius: 8,
-    minWidth: 80,
     borderWidth: 1,
     borderColor: 'transparent',
+    flex: 1,
   },
   activeButton: {
     backgroundColor: 'rgba(189, 13, 192, 0.15)',
     borderColor: '#BD0DC0',
   },
+  recommendButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1E3A8A',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    width: '100%',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  activeRecommendButton: {
+    backgroundColor: 'rgba(0, 122, 255, 0.25)',
+    borderColor: '#007AFF',
+  },
   buttonText: {
     color: '#FFFFFF',
     marginLeft: 6,
     fontWeight: '500',
+    textAlign: 'center',
+    fontSize: 12,
   },
   activeButtonText: {
     color: '#BD0DC0',
+  },
+  recommendButtonText: {
+    color: '#FFFFFF',
+    marginLeft: 8,
+    fontWeight: '600',
+    textAlign: 'center',
+    fontSize: 14,
+  },
+  activeRecommendButtonText: {
+    color: '#007AFF',
   },
   modalOverlay: {
     flex: 1,

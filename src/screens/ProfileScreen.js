@@ -4,11 +4,35 @@ import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useLogout } from '../contexts/useLogout';
 import { useMovies } from '../contexts/useMovies';
+import { useRecommendations } from '../contexts/RecommendationsContext';
+
 
 const ProfileScreen = ({ navigation }) => {
     const { user } = useAuth();
     const { handleLogout, loading } = useLogout();
     const { stats } = useMovies(); // 🔥 USAR ESTATÍSTICAS REAIS
+      const { quickStats } = useRecommendations();
+
+    const handleMyReviews = () => {
+        navigation.navigate('MyReviews');
+    };
+
+    const handleMyRatings = () => {
+        navigation.navigate('MyRatings');
+    };
+
+    const handleRecommendationsReceived = () => {
+        navigation.navigate('RecommendationsReceived');
+    };
+
+    const handleMyRecommendations = () => {
+        navigation.navigate('MyRecommendations');
+    };
+
+    const handleFriendsRanking = () => {
+        navigation.navigate('FriendsRanking'); 
+    };
+
 
     // Função para gerar avatar se o usuário tiver photoURL
     const getAvatarUrl = () => {
@@ -183,7 +207,7 @@ const ProfileScreen = ({ navigation }) => {
                         </View>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuItem}>
+                    <TouchableOpacity style={styles.menuItem} onPress={handleMyReviews} >
                         <View style={styles.menuItemLeft}>
                             <Feather name="edit-3" size={20} color="#9CA3AF" />
                             <Text style={styles.menuText}>Minhas Resenhas</Text>
@@ -194,7 +218,7 @@ const ProfileScreen = ({ navigation }) => {
                         </View>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuItem}>
+                    <TouchableOpacity style={styles.menuItem}  onPress={handleMyRatings}>
                         <View style={styles.menuItemLeft}>
                             <Feather name="star" size={20} color="#9CA3AF" />
                             <Text style={styles.menuText}>Minhas Avaliações</Text>
@@ -237,7 +261,7 @@ const ProfileScreen = ({ navigation }) => {
                         <Feather name="chevron-right" size={20} color="#9CA3AF" />
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuItem}>
+                    <TouchableOpacity style={styles.menuItem}  onPress={handleFriendsRanking} >
                         <View style={styles.menuItemLeft}>
                             <Feather name="award" size={20} color="#9CA3AF" />
                             <Text style={styles.menuText}>Ranking de Amigos</Text>
@@ -245,15 +269,25 @@ const ProfileScreen = ({ navigation }) => {
                         <Feather name="chevron-right" size={20} color="#9CA3AF" />
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuItem}>
+                    <TouchableOpacity style={styles.menuItem} onPress={handleRecommendationsReceived}>
                         <View style={styles.menuItemLeft}>
                             <Feather name="message-circle" size={20} color="#9CA3AF" />
                             <Text style={styles.menuText}>Recomendações Recebidas</Text>
                         </View>
                         <Feather name="chevron-right" size={20} color="#9CA3AF" />
+
+                         <View style={styles.menuItemRight}>
+                            {/* 🔥 ADICIONAR BADGE DE NOTIFICAÇÃO */}
+                            {quickStats.pendingReceived > 0 && (
+                                <View style={styles.badge}>
+                                    <Text style={styles.badgeText}>{quickStats.pendingReceived}</Text>
+                                </View>
+                            )}
+                            <Feather name="chevron-right" size={20} color="#9CA3AF" />
+                        </View>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuItem}>
+                    <TouchableOpacity style={styles.menuItem}  onPress={handleMyRecommendations}>
                         <View style={styles.menuItemLeft}>
                             <Feather name="share-2" size={20} color="#9CA3AF" />
                             <Text style={styles.menuText}>Minhas Recomendações</Text>
@@ -519,6 +553,26 @@ const styles = StyleSheet.create({
         color: '#6B7280',
         paddingBottom: 32,
     },
+    menuItemContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  badge: {
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
 });
 
 export default ProfileScreen;

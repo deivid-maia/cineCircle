@@ -24,16 +24,6 @@ export const getPopularMovies = async () => {
     }
 };
 
-// Obter detalhes de um filme
-// export const getMovieDetails = async (movieId) => {
-//     try {
-//         const response = await api.get(`/movie/${movieId}`);
-//         return response.data;
-//     } catch (error) {
-//         console.error('Erro ao buscar detalhes do filme:', error);
-//         return null;
-//     }
-// };
 // Obter detalhes de um filme com informações adicionais
 export const getMovieDetails = async (movieId) => {
     try {
@@ -75,18 +65,43 @@ export const getTrendingMovies = async () => {
     }
 };
 
-// Buscar filmes por gênero
+// 🔥 FUNÇÃO CORRIGIDA - Buscar filmes por gênero
 export const getMoviesByGenre = async (genreId, page = 1) => {
     try {
+        console.log(`🔍 [API] Buscando filmes do gênero ${genreId}, página ${page}`);
+        
         const response = await api.get('/discover/movie', {
-        params: {
-            with_genres: genreId,
-            page,
-        },
+            params: {
+                with_genres: genreId,
+                page: page,
+                sort_by: 'popularity.desc',
+                vote_count_gte: 100, // Apenas filmes com pelo menos 100 votos
+                include_adult: false, // Excluir conteúdo adulto
+                'primary_release_date.gte': '1990-01-01', // Filmes a partir de 1990
+            }
         });
-        return response.data.results;
+        
+        const movies = response.data.results || [];
+        
+        console.log(`✅ [API] Gênero ${genreId}: ${movies.length} filmes encontrados`);
+        
+        // Log dos primeiros filmes para debug
+        if (movies.length > 0) {
+            console.log(`📽️ [API] Primeiros filmes do gênero ${genreId}:`, 
+                movies.slice(0, 5).map(movie => `"${movie.title}" (${movie.id})`)
+            );
+        } else {
+            console.log(`⚠️ [API] Nenhum filme encontrado para gênero ${genreId}`);
+        }
+        
+        return movies;
     } catch (error) {
-        console.error('Erro ao buscar filmes por gênero:', error);
+        console.error(`❌ [API] Erro ao buscar filmes do gênero ${genreId}:`, error);
+        console.error(`❌ [API] Detalhes do erro:`, {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
+        });
         return [];
     }
 };

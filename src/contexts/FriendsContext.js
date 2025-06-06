@@ -47,69 +47,42 @@ export const FriendsProvider = ({ children }) => {
   };
 
   // Carregar dados iniciais
-const loadInitialData = async () => {
-  console.log('🚀 CARREGANDO DADOS INICIAIS - FriendsContext');
-  
-  setLoading(true);
-  try {
-    console.log('📋 Executando Promise.all...');
-    console.log('📋 Chamando loadFriends...');
-    console.log('📋 Chamando loadSuggestedFriends...');
-    console.log('📋 Chamando loadFriendRequests...');
-    console.log('📋 Chamando loadStats...');
+  const loadInitialData = async () => {
+    console.log('🚀 CARREGANDO DADOS INICIAIS - FriendsContext');
     
-    await Promise.all([
-      loadFriends(),           // 🎯 VERIFICAR SE ESTA LINHA EXISTE
-      loadSuggestedFriends(),
-      loadFriendRequests(),
-      loadStats()
-    ]);
-    console.log('✅ Promise.all concluído');
-  } catch (error) {
-    console.error('❌ Erro ao carregar dados iniciais:', error);
-  } finally {
-    setLoading(false);
-    console.log('🏁 Loading finalizado');
-  }
-};
+    setLoading(true);
+    try {
+      await Promise.all([
+        loadFriends(),
+        loadSuggestedFriends(),
+        loadFriendRequests(),
+        loadStats()
+      ]);
+      console.log('✅ Promise.all concluído');
+    } catch (error) {
+      console.error('❌ Erro ao carregar dados iniciais:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   // 👥 CARREGAR LISTA DE AMIGOS
-const loadFriends = async () => {
-  console.log('🚀 CHAMANDO loadFriends no FriendsContext - INÍCIO');
-  
-  try {
-    console.log('📞 Chamando friendsService.getUserFriends()...');
-    const result = await friendsService.getUserFriends();
-    
-    console.log('📊 Resultado completo do getUserFriends:', result);
-    console.log('📊 Success:', result.success);
-    console.log('📊 Friends length:', result.friends?.length);
-    console.log('📊 Error:', result.error);
-    
-    if (result.success) {
-      console.log('✅ Resultado bem-sucedido, atualizando estado...');
-      console.log('👥 Lista de amigos recebida:', result.friends);
+  const loadFriends = async () => {
+    try {
+      const result = await friendsService.getUserFriends();
       
-      setFriends(result.friends);
-      
-      console.log('✅ Estado atualizado - amigos carregados:', result.friends.length);
-    } else {
-      console.error('❌ Erro no resultado:', result.error);
-      console.error('❌ Limpando lista de amigos devido ao erro');
+      if (result.success) {
+        setFriends(result.friends || []);
+        console.log('✅ Amigos carregados:', result.friends?.length || 0);
+      } else {
+        console.error('❌ Erro no resultado:', result.error);
+        setFriends([]);
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar amigos:', error);
       setFriends([]);
     }
-  } catch (error) {
-    console.error('❌ Erro CATCH ao carregar amigos:', error);
-    console.error('❌ Tipo do erro:', typeof error);
-    console.error('❌ Mensagem do erro:', error.message);
-    console.error('❌ Stack do erro:', error.stack);
-    
-    // Limpar lista em caso de erro
-    setFriends([]);
-  }
-  
-  console.log('🏁 FINALIZANDO loadFriends no FriendsContext');
-};
+  };
 
   // 👥 CARREGAR SUGESTÕES DE AMIGOS
   const loadSuggestedFriends = async () => {
@@ -117,16 +90,18 @@ const loadFriends = async () => {
       const result = await friendsService.getSuggestedFriends();
       if (result.success) {
         // ✅ FILTRAR DADOS VÁLIDOS
-        const validSuggestions = result.suggestions.filter(suggestion => 
+        const validSuggestions = (result.suggestions || []).filter(suggestion => 
           suggestion && suggestion.uid && (suggestion.email || suggestion.displayName)
         );
         setSuggestedFriends(validSuggestions);
         console.log('✅ Sugestões carregadas:', validSuggestions.length);
       } else {
         console.error('❌ Erro ao carregar sugestões:', result.error);
+        setSuggestedFriends([]);
       }
     } catch (error) {
       console.error('❌ Erro ao carregar sugestões:', error);
+      setSuggestedFriends([]);
     }
   };
 
@@ -135,13 +110,15 @@ const loadFriends = async () => {
     try {
       const result = await friendsService.getFriendRequests();
       if (result.success) {
-        setFriendRequests(result.requests);
-        console.log('✅ Solicitações carregadas:', result.requests.length);
+        setFriendRequests(result.requests || []);
+        console.log('✅ Solicitações carregadas:', result.requests?.length || 0);
       } else {
         console.error('❌ Erro ao carregar solicitações:', result.error);
+        setFriendRequests([]);
       }
     } catch (error) {
       console.error('❌ Erro ao carregar solicitações:', error);
+      setFriendRequests([]);
     }
   };
 
@@ -173,8 +150,8 @@ const loadFriends = async () => {
     try {
       const result = await friendsService.searchUsers(query);
       if (result.success) {
-        setSearchResults(result.users);
-        console.log('🔍 Busca concluída:', result.users.length, 'usuários encontrados');
+        setSearchResults(result.users || []);
+        console.log('🔍 Busca concluída:', result.users?.length || 0, 'usuários encontrados');
       }
       return result;
     } catch (error) {
@@ -266,7 +243,6 @@ const loadFriends = async () => {
   // 🗑️ REMOVER AMIGO
   const removeFriend = async (friendId) => {
     try {
-      // Implementar quando friendsService tiver essa função
       console.log('🗑️ Removendo amigo:', friendId);
       
       // Por enquanto, apenas remover localmente
@@ -283,7 +259,6 @@ const loadFriends = async () => {
   // 🔍 VERIFICAR STATUS DE AMIZADE
   const checkFriendshipStatus = async (targetUserId) => {
     try {
-      // Implementar quando necessário
       return { status: 'none' };
     } catch (error) {
       console.error('❌ Erro ao verificar status:', error);
@@ -295,6 +270,16 @@ const loadFriends = async () => {
   const refreshData = async () => {
     await loadInitialData();
   };
+
+  // Log do estado atual (FORA do JSX)
+  console.log('👥 FriendsContext - Estado atual:', {
+    totalFriends: friends.length,
+    suggestedFriends: suggestedFriends.length,
+    pendingRequests: friendRequests.length,
+    searchResults: searchResults.length,
+    loading,
+    stats
+  });
 
   // Valor do contexto
   const value = {
@@ -324,15 +309,6 @@ const loadFriends = async () => {
     // Funções utilitárias
     clearSearchResults: () => setSearchResults([])
   };
-
-  console.log('👥 FriendsContext - Estado atual:', {
-    totalFriends: friends.length,
-    suggestedFriends: suggestedFriends.length,
-    pendingRequests: friendRequests.length,
-    searchResults: searchResults.length,
-    loading,
-    stats
-  });
 
   return (
     <FriendsContext.Provider value={value}>

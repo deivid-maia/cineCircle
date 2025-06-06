@@ -13,6 +13,10 @@ import NotificationsScreen from '../screens/NotificationsScreen';
 import HelpScreen from '../screens/HelpScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 
+import RecommendationsReceivedScreen from '../screens/RecommendationsReceivedScreen';
+
+// TODAS AS IMPORTAÇÕES PROBLEMÁTICAS FORAM REMOVIDAS
+
 const Drawer = createDrawerNavigator();
 
 const DrawerNavigator = () => {
@@ -33,6 +37,38 @@ const DrawerNavigator = () => {
     >
       <Drawer.Screen name="MainTabs" component={TabNavigator} />
       <Drawer.Screen name="Settings" component={SettingsScreen} />
+
+      <Drawer.Screen 
+        name="RecommendationsReceived" 
+        component={RecommendationsReceivedScreen}
+        options={{ title: 'Recomendações Recebidas' }}
+      />
+      
+      {/* 
+      TELAS TEMPORARIAMENTE DESABILITADAS ATÉ RESOLVERMOS OS CONTEXTOS:
+      
+      <Drawer.Screen 
+        name="MyRecommendations" 
+        component={MyRecommendationsScreen}
+        options={{ title: 'Minhas Recomendações' }}
+      />
+      <Drawer.Screen 
+        name="MyReviews" 
+        component={MyReviewsScreen}
+        options={{ title: 'Minhas Resenhas' }}
+      />
+      <Drawer.Screen 
+        name="MyRatings" 
+        component={MyRatingsScreen}
+        options={{ title: 'Minhas Avaliações' }}
+      />
+      <Drawer.Screen 
+        name="FriendsRanking" 
+        component={FriendsRankingScreen}
+        options={{ title: 'Ranking de Amigos' }}
+      />
+      */}
+      
       <Drawer.Screen name="Notifications" component={NotificationsScreen} />
       <Drawer.Screen name="Help" component={HelpScreen} />
       <Drawer.Screen name="EditProfile" component={EditProfileScreen} />

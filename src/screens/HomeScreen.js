@@ -20,6 +20,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const { width } = Dimensions.get('window');
 const MOVIE_ITEM_WIDTH = width * 0.32; // Ligeiramente maior para melhor visualização
 
+// Definir categorias com IDs de gênero do TMDB
+const categories = [
+  { name: 'Romance', icon: 'heart', color: '#FF6B6B', genreId: 10749 },
+  { name: 'Ação', icon: 'zap', color: '#4361EE', genreId: 28 },
+  { name: 'Comédia', icon: 'smile', color: '#3FBD69', genreId: 35 },
+  { name: 'Drama', icon: 'award', color: '#9B51E0', genreId: 18 },
+  { name: 'Terror', icon: 'eye', color: '#E74C3C', genreId: 27 },
+  { name: 'Ficção', icon: 'star', color: '#00D4FF', genreId: 878 },
+  { name: 'Aventura', icon: 'map', color: '#F39C12', genreId: 12 },
+  { name: 'Animação', icon: 'camera', color: '#8E44AD', genreId: 16 },
+  { name: 'Crime', icon: 'shield', color: '#34495E', genreId: 80 },
+  { name: 'Fantasia', icon: 'feather', color: '#1ABC9C', genreId: 14 },
+  { name: 'Mistério', icon: 'search', color: '#95A5A6', genreId: 9648 },
+  { name: 'Thriller', icon: 'activity', color: '#E67E22', genreId: 53 }
+];
+
 const HomeScreen = ({ navigation }) => {
   const [popularMovies, setPopularMovies] = useState([]);
   const [trendingMovies, setTrendingMovies] = useState([]);
@@ -77,6 +93,15 @@ const HomeScreen = ({ navigation }) => {
     fetchMovies();
   }, []);
 
+  // Função para navegar para a tela de categoria
+  const handleCategoryPress = (category) => {
+    navigation.navigate('Categoria', {
+      categoryName: category.name,
+      genreId: category.genreId,
+      categoryColor: category.color
+    });
+  };
+
   const renderMovieCard = ({ item }) => (
     <TouchableOpacity
       style={styles.movieCard}
@@ -128,16 +153,7 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.appBrandContainer}>
           <View style={styles.logoWrapper}>
             <Image source={require('../../assets/cineCircle-logo-horizontalTexto.png')} style={styles.logo} />
-            {/* <Text style={styles.logoText}>CineCircle</Text> */}
           </View>
-          {/* <Text style={styles.appName}>CineCircle</Text> */}
-          {/* <View style={styles.userInfo}>
-            <Image source={{ uri: user.avatar }} style={styles.avatar} />
-            <View>
-              <Text style={styles.welcomeText}>Bem vinda,</Text>
-              <Text style={styles.userName}>{user.name}</Text>
-            </View>
-          </View> */}
         </View>
         <TouchableOpacity 
           style={styles.menuButton} 
@@ -146,9 +162,6 @@ const HomeScreen = ({ navigation }) => {
           <Feather name="menu" size={24} color="white" />
         </TouchableOpacity>
       </Animated.View>
-      
-      {/* Espaço adicional após o cabeçalho */}
-      {/* <View style={{ height: 10 }} /> */}
       
       <Animated.ScrollView 
         style={styles.scrollContainer}
@@ -160,38 +173,31 @@ const HomeScreen = ({ navigation }) => {
         )}
         scrollEventThrottle={16}
       >
-        {/* Categorias populares - nova seção */}
+        {/* Categorias populares - agora em scroll horizontal */}
         <View style={styles.categoriesSection}>
-          <Text style={styles.sectionTitle}>Categorias</Text>
-          <View style={styles.categoryRow}>
-            <TouchableOpacity style={styles.categoryButton}>
-              <View style={[styles.categoryIcon, { backgroundColor: '#FF6B6B' }]}>
-                <Feather name="heart" size={20} color="#FFFFFF" />
-              </View>
-              <Text style={styles.categoryText}>Romance</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.categoryButton}>
-              <View style={[styles.categoryIcon, { backgroundColor: '#4361EE' }]}>
-                <Feather name="zap" size={20} color="#FFFFFF" />
-              </View>
-              <Text style={styles.categoryText}>Ação</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.categoryButton}>
-              <View style={[styles.categoryIcon, { backgroundColor: '#3FBD69' }]}>
-                <Feather name="smile" size={20} color="#FFFFFF" />
-              </View>
-              <Text style={styles.categoryText}>Comédia</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.categoryButton}>
-              <View style={[styles.categoryIcon, { backgroundColor: '#9B51E0' }]}>
-                <Feather name="award" size={20} color="#FFFFFF" />
-              </View>
-              <Text style={styles.categoryText}>Drama</Text>
-            </TouchableOpacity>
+          <View style={styles.categoryHeader}>
+            <Text style={styles.sectionTitle}>Categorias</Text>
           </View>
+          <FlatList
+            data={categories}
+            renderItem={({ item: category }) => (
+              <TouchableOpacity 
+                key={category.name}
+                style={styles.categoryButton}
+                onPress={() => handleCategoryPress(category)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
+                  <Feather name={category.icon} size={20} color="#FFFFFF" />
+                </View>
+                <Text style={styles.categoryText}>{category.name}</Text>
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.name}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesListContent}
+          />
         </View>
         
         {/* Minhas recomendações */}
@@ -379,15 +385,19 @@ const styles = StyleSheet.create({
   },
   categoriesSection: {
     marginBottom: 32, // Aumentado para dar mais espaço entre seções
-    paddingHorizontal: 16,
   },
-  categoryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16, // Aumentado para dar mais espaço
+  categoryHeader: {
+    paddingHorizontal: 16,
+    marginBottom: 20, // Espaço entre o título e o scroll
+  },
+  categoriesListContent: {
+    paddingHorizontal: 16,
+    paddingRight: 32, // Espaço extra no final
   },
   categoryButton: {
     alignItems: 'center',
+    marginRight: 20, // Espaço entre categorias
+    width: 70, // Largura fixa para manter alinhamento
   },
   categoryIcon: {
     width: 56, // Aumentado ligeiramente
@@ -411,18 +421,18 @@ const styles = StyleSheet.create({
     fontSize: 13, // Ligeiramente maior
     marginTop: 4, // Adicionado para dar mais espaço entre o ícone e o texto
   },
-   logoWrapper: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 20,
-      marginTop: 20,
-    },
-    logo: {
-      width: 220,
-      height: 40,
-      marginRight: 10,
-      borderRadius: 8, // Logo com cantos arredondados como na imagem
-    },
+  logoWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    marginTop: 20,
+  },
+  logo: {
+    width: 220,
+    height: 40,
+    marginRight: 10,
+    borderRadius: 8, // Logo com cantos arredondados como na imagem
+  },
 });
 
 export default HomeScreen;

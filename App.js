@@ -11,6 +11,8 @@ import * as NavigationBar from 'expo-navigation-bar';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { MoviesProvider } from './src/contexts/useMovies';
 import { FriendsProvider } from './src/contexts/FriendsContext'; // 👥 NOVO CONTEXTO
+import { RecommendationsProvider } from './src/contexts/RecommendationsContext';
+
 
 // Telas de autenticação
 import InitialScreen from './src/screens/InitialScreen';
@@ -121,6 +123,7 @@ export default function App() {
   return (
     <AuthProvider>
       <MoviesProvider>
+        <RecommendationsProvider>
         <FriendsProvider> {/* 👥 NOVO PROVIDER */}
           <SafeAreaProvider>
             <View style={styles.container}>
@@ -129,6 +132,7 @@ export default function App() {
             </View>
           </SafeAreaProvider>
         </FriendsProvider>
+        </RecommendationsProvider>
       </MoviesProvider>
     </AuthProvider>
   );

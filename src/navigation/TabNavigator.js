@@ -7,6 +7,7 @@ import FriendsStackNavigator from './FriendsStackNavigator';
 
 // Suas telas dentro do menu principal - app principal
 import HomeScreen from '../screens/HomeScreen';
+import CategoryScreen from '../screens/CategoryScreen';
 import AddContentScreen from '../screens/AddContentScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ExploreScreen from '../screens/ExploreScreen';
@@ -36,12 +37,22 @@ const TabNavigator = () => {
     >
       <Tab.Screen
         name="Home"
-        component={HomeScreen}
+        component={HomeScreen} // 🔥 VOLTA AO HOMESCREEN NORMAL
         options={{
           tabBarLabel: 'Início',
           tabBarIcon: ({ color, size }) => (
             <Feather name="home" color={color} size={size} />
           ),
+        }}
+      />
+
+      {/* 🔥 NOVA TELA DE CATEGORIA (oculta da tab bar) */}
+      <Tab.Screen
+        name="Categoria"
+        component={CategoryScreen}
+        options={{
+          tabBarButton: () => null, // Oculta da tab bar
+          tabBarStyle: { display: 'none' }, // Oculta a tab bar quando esta tela estiver ativa
         }}
       />
 
@@ -71,7 +82,7 @@ const TabNavigator = () => {
 
       <Tab.Screen
         name="FriendsTab"
-        component={FriendsStackNavigator}  // 🔥 APENAS ESTA ABA DE AMIGOS
+        component={FriendsStackNavigator}
         options={{
           tabBarLabel: 'Amigos',
           tabBarIcon: ({ color, size }) => (
