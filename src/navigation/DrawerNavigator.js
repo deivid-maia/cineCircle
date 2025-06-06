@@ -8,10 +8,13 @@ import UserMoviesScreen from '../screens/UserMoviesScreen';
 import TabNavigator from './TabNavigator';
 
 // Telas para o drawer estao dentro da home no menu lateral
+// DrawerNavigator.js - Menu lateral 
 import SettingsScreen from '../screens/SettingsScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import HelpScreen from '../screens/HelpScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
+import MyReviewsScreen from '../screens/MyReviewsScreen';
+import FriendsRankingScreen from '../screens/FriendsRankingScreen';
 
 import RecommendationsReceivedScreen from '../screens/RecommendationsReceivedScreen';
 
@@ -73,6 +76,8 @@ const DrawerNavigator = () => {
       <Drawer.Screen name="Help" component={HelpScreen} />
       <Drawer.Screen name="EditProfile" component={EditProfileScreen} />
       <Drawer.Screen name="UserMovies" component={UserMoviesScreen} />
+      <Drawer.Screen name="MyReviews" component={MyReviewsScreen} /> 
+      <Drawer.Screen name="FriendsRanking" component={FriendsRankingScreen}  />
     </Drawer.Navigator>
   );
 };
