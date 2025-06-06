@@ -29,8 +29,25 @@ const ProfileScreen = ({ navigation }) => {
         navigation.navigate('MyRecommendations');
     };
 
+    // const handleFriendsRanking = () => {
+    //     navigation.navigate('FriendsRanking'); 
+    // };
+
+    // navigation.navigate('FriendsTab', { 
+    //     screen: 'FriendsRanking' 
+    // });
+
+    
+    // 🔥 CORRIGIDO: Navegação para Ranking de Amigos
     const handleFriendsRanking = () => {
-        navigation.navigate('FriendsRanking'); 
+        navigation.navigate('FriendsTab', { 
+            screen: 'FriendsRanking' 
+        });
+    };
+
+    // 🔥 NOVO: Navegação para lista de amigos
+    const handleFriendsList = () => {
+        navigation.navigate('FriendsTab');
     };
 
 
@@ -209,8 +226,8 @@ const ProfileScreen = ({ navigation }) => {
 
                     <TouchableOpacity 
                         style={styles.menuItem}
-                        onPress={() => navigation.navigate('MyReviews')} // 🔥 ADICIONAR NAVEGAÇÃO
-                    ></TouchableOpacity>
+                        onPress={() => navigation.navigate('MyReviews')}
+                    >
                         <View style={styles.menuItemLeft}>
                             <Feather name="edit-3" size={20} color="#9CA3AF" />
                             <Text style={styles.menuText}>Minhas Resenhas</Text>
@@ -255,7 +272,7 @@ const ProfileScreen = ({ navigation }) => {
 
                     <TouchableOpacity 
                         style={styles.menuItem}
-                        onPress={() => navigation.navigate('FriendsTab')}
+                         onPress={handleFriendsList}
                     >
                         <View style={styles.menuItemLeft}>
                             <Feather name="users" size={20} color="#9CA3AF" />
@@ -264,7 +281,7 @@ const ProfileScreen = ({ navigation }) => {
                         <Feather name="chevron-right" size={20} color="#9CA3AF" />
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuItem}>
+                    <TouchableOpacity style={styles.menuItem}  onPress={handleFriendsRanking}>
                         <View style={styles.menuItemLeft}>
                             <Feather name="award" size={20} color="#9CA3AF" />
                             <Text style={styles.menuText}>Ranking de Amigos</Text>

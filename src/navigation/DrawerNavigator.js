@@ -47,8 +47,8 @@ const DrawerNavigator = () => {
         options={{ title: 'Recomendações Recebidas' }}
       />
       
-      {/* 
-      TELAS TEMPORARIAMENTE DESABILITADAS ATÉ RESOLVERMOS OS CONTEXTOS:
+      
+      {/* TELAS TEMPORARIAMENTE DESABILITADAS ATÉ RESOLVERMOS OS CONTEXTOS:
       
       <Drawer.Screen 
         name="MyRecommendations" 
@@ -69,8 +69,8 @@ const DrawerNavigator = () => {
         name="FriendsRanking" 
         component={FriendsRankingScreen}
         options={{ title: 'Ranking de Amigos' }}
-      />
-      */}
+      /> */}
+     
       
       <Drawer.Screen name="Notifications" component={NotificationsScreen} />
       <Drawer.Screen name="Help" component={HelpScreen} />
