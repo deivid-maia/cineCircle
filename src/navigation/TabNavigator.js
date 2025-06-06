@@ -15,6 +15,7 @@ const Tab = createBottomTabNavigator();
 
 const TabNavigator = () => {
   const insets = useSafeAreaInsets();
+  // TabNavigator.js - Abas principais ✅  
   return (
     <Tab.Navigator
       screenOptions={{

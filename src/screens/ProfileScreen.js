@@ -183,7 +183,10 @@ const ProfileScreen = ({ navigation }) => {
                         </View>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuItem}>
+                    <TouchableOpacity 
+                        style={styles.menuItem}
+                        onPress={() => navigation.navigate('MyReviews')} // 🔥 ADICIONAR NAVEGAÇÃO
+                    >
                         <View style={styles.menuItemLeft}>
                             <Feather name="edit-3" size={20} color="#9CA3AF" />
                             <Text style={styles.menuText}>Minhas Resenhas</Text>
@@ -237,7 +240,10 @@ const ProfileScreen = ({ navigation }) => {
                         <Feather name="chevron-right" size={20} color="#9CA3AF" />
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuItem}>
+                    <TouchableOpacity 
+                        style={styles.menuItem}
+                        onPress={() => navigation.navigate('FriendsRanking')} 
+                    >
                         <View style={styles.menuItemLeft}>
                             <Feather name="award" size={20} color="#9CA3AF" />
                             <Text style={styles.menuText}>Ranking de Amigos</Text>
